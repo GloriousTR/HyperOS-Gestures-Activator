@@ -1,5 +1,6 @@
 package dev.glorioustr.hyperosgesturesactivator;
 
+import android.app.BroadcastOptions;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -28,6 +29,8 @@ final class DiagnosticEventReporter {
                 .putExtra(DiagnosticEventContract.EXTRA_PROCESS, processName)
                 .putExtra(DiagnosticEventContract.EXTRA_THREAD,
                         Thread.currentThread().getName());
-        context.sendBroadcast(intent);
+        BroadcastOptions options = BroadcastOptions.makeBasic()
+                .setShareIdentityEnabled(true);
+        context.sendBroadcast(intent, null, options.toBundle());
     }
 }
