@@ -397,7 +397,7 @@ public final class HgaXposedModule extends XposedModule {
                     continue;
                 }
                 Object enabled = invokeNoArg(info, "isEnabled");
-                Object state = invokeNoArg(info, "getState");
+                Object state = invokeOptionalNoArg(info, "getState", "unavailable");
                 navigationOverlays.add(packageName + "{enabled=" + enabled
                         + ",state=" + state + ",category=" + category + '}');
             }
@@ -477,6 +477,17 @@ public final class HgaXposedModule extends XposedModule {
         }
         method.setAccessible(true);
         return method.invoke(target);
+    }
+
+    private static Object invokeOptionalNoArg(
+            Object target,
+            String methodName,
+            Object fallback) {
+        try {
+            return invokeNoArg(target, methodName);
+        } catch (Throwable ignored) {
+            return fallback;
+        }
     }
 
     private static Method findMethod(Class<?> type, String methodName, int parameterCount) {
