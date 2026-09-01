@@ -20,7 +20,6 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -123,21 +122,25 @@ public final class DiagnosticsActivity extends Activity {
         filterView.setTextSize(12);
         root.addView(filterView, matchWrap());
 
-        HorizontalScrollView controlsScroll = new HorizontalScrollView(this);
-        controlsScroll.setHorizontalScrollBarEnabled(false);
-        controlsScroll.setPadding(0, dp(6), 0, dp(8));
         LinearLayout controls = new LinearLayout(this);
-        controls.setOrientation(LinearLayout.HORIZONTAL);
-        controls.addView(filterButton("Tümü", null));
-        controls.addView(filterButton("Başarılı", DiagnosticEvent.STATUS_SUCCESS));
-        controls.addView(filterButton("Başarısız", DiagnosticEvent.STATUS_FAILURE));
-        controls.addView(filterButton("Bilgi", DiagnosticEvent.STATUS_INFO));
-        controls.addView(actionButton("Snapshot", view -> captureAppSnapshot("manual-refresh")));
-        controls.addView(actionButton("Kayıtları temizle", view -> confirmClear()));
-        controlsScroll.addView(controls, new HorizontalScrollView.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(controlsScroll, matchWrap());
+        controls.setOrientation(LinearLayout.VERTICAL);
+        controls.setPadding(0, dp(6), 0, dp(8));
+
+        LinearLayout filters = new LinearLayout(this);
+        filters.setOrientation(LinearLayout.HORIZONTAL);
+        addWeightedButton(filters, filterButton("Tümü", null));
+        addWeightedButton(filters, filterButton("Başarılı", DiagnosticEvent.STATUS_SUCCESS));
+        addWeightedButton(filters, filterButton("Başarısız", DiagnosticEvent.STATUS_FAILURE));
+        addWeightedButton(filters, filterButton("Bilgi", DiagnosticEvent.STATUS_INFO));
+        controls.addView(filters, matchWrap());
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        addWeightedButton(actions,
+                actionButton("Anlık kayıt", view -> captureAppSnapshot("manual-refresh")));
+        addWeightedButton(actions, actionButton("Kayıtları temizle", view -> confirmClear()));
+        controls.addView(actions, matchWrap());
+        root.addView(controls, matchWrap());
 
         eventList = new ListView(this);
         eventList.setAdapter(eventAdapter);
@@ -182,6 +185,16 @@ public final class DiagnosticsActivity extends Activity {
         params.setMarginEnd(dp(6));
         button.setLayoutParams(params);
         return button;
+    }
+
+    private void addWeightedButton(LinearLayout row, Button button) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f);
+        params.setMarginEnd(dp(6));
+        button.setLayoutParams(params);
+        row.addView(button);
     }
 
     private void reloadEvents() {
