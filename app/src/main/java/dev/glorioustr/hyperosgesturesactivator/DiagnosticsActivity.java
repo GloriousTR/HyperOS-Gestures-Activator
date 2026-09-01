@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
@@ -47,6 +49,8 @@ public final class DiagnosticsActivity extends Activity {
     private TextView summaryView;
     private TextView filterView;
     private String activeFilter;
+    private long renderedTotal = -1L;
+    private String renderedFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,8 +86,16 @@ public final class DiagnosticsActivity extends Activity {
     private View buildScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(20), dp(16), dp(12));
         root.setBackgroundColor(Color.rgb(247, 242, 250));
+        root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsets.Type.systemBars());
+            view.setPadding(
+                    dp(16) + bars.left,
+                    dp(20) + bars.top,
+                    dp(16) + bars.right,
+                    dp(12) + bars.bottom);
+            return windowInsets;
+        });
 
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
@@ -174,12 +186,20 @@ public final class DiagnosticsActivity extends Activity {
     private void reloadEvents() {
         try {
             DiagnosticDatabase.Counts counts = database.counts();
+            boolean sameFilter = activeFilter == null
+                    ? renderedFilter == null
+                    : activeFilter.equals(renderedFilter);
+            if (counts.total == renderedTotal && sameFilter) {
+                return;
+            }
             List<DiagnosticEvent> events = database.latest(activeFilter);
             summaryView.setText("Toplam " + counts.total
                     + "   ✓ " + counts.success
                     + "   ✕ " + counts.failure
                     + "   ℹ " + counts.info);
             eventAdapter.replace(events);
+            renderedTotal = counts.total;
+            renderedFilter = activeFilter;
         } catch (Throwable throwable) {
             liveStateView.setText("● HATA — diagnostics veritabanı okunamadı");
             liveStateView.setTextColor(Color.rgb(186, 26, 26));
@@ -218,6 +238,7 @@ public final class DiagnosticsActivity extends Activity {
                 .setNegativeButton("Vazgeç", null)
                 .setPositiveButton("Sil", (dialog, which) -> {
                     database.clear();
+                    renderedTotal = -1L;
                     recordAppEvent(
                             DiagnosticEvent.STATUS_SUCCESS,
                             "storage",

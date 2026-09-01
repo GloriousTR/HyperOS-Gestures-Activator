@@ -12,3 +12,4 @@ keystore/
 *.iml
 app/build/
 logs/
+artifacts/
