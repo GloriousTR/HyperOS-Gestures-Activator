@@ -48,6 +48,7 @@ public final class DiagnosticsActivity extends Activity {
     private TextView liveStateView;
     private TextView summaryView;
     private TextView filterView;
+    private ListView eventList;
     private String activeFilter;
     private long renderedTotal = -1L;
     private String renderedFilter;
@@ -138,7 +139,7 @@ public final class DiagnosticsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(controlsScroll, matchWrap());
 
-        ListView eventList = new ListView(this);
+        eventList = new ListView(this);
         eventList.setAdapter(eventAdapter);
         eventList.setDividerHeight(dp(8));
         eventList.setClipToPadding(false);
@@ -198,6 +199,7 @@ public final class DiagnosticsActivity extends Activity {
                     + "   ✕ " + counts.failure
                     + "   ℹ " + counts.info);
             eventAdapter.replace(events);
+            eventList.setSelection(0);
             renderedTotal = counts.total;
             renderedFilter = activeFilter;
         } catch (Throwable throwable) {

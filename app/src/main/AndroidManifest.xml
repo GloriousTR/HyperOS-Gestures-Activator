@@ -19,6 +19,7 @@
         <receiver
             android:name=".DiagnosticEventReceiver"
             android:directBootAware="true"
-            android:exported="true" />
+            android:exported="true"
+            android:permission="android.permission.STATUS_BAR_SERVICE" />
     </application>
 </manifest>
