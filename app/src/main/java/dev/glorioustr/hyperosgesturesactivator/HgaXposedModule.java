@@ -325,7 +325,6 @@ public final class HgaXposedModule extends XposedModule {
                     || "unresolved".equals(home)
                     || settings.contains("error:")
                     || overlays.startsWith("error:")
-                    || overlays.contains("unavailable")
                     || overlays.endsWith("-null")) {
                 recordFailure("snapshot", "capture-navigation-state", detail, null);
             } else {
