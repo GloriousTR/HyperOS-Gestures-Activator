@@ -1,0 +1,11 @@
+HyperOS Gestures Activator
+Copyright 2026 GloriousTR contributors
+
+This project uses the Gradle Wrapper and was bootstrapped after studying the
+architecture and LSPosed API 102 integration patterns of MiuiBackGestureHook 0.4.0:
+
+  https://github.com/wxxsfxyzm/MiuiBackGestureHook
+
+MiuiBackGestureHook is distributed under the Apache License 2.0. HyperOS Gestures
+Activator does not include its gesture engine in v0.1.0; the installed 0.4.0 module
+remains a separate component during diagnostics.

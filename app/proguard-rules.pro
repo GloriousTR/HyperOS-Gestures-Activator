@@ -1,0 +1,3 @@
+-keep class dev.glorioustr.hyperosgesturesactivator.HgaXposedModule { *; }
+-keepattributes RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations
+-dontwarn io.github.libxposed.**

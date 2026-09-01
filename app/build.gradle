@@ -1,0 +1,47 @@
+plugins {
+    id "com.android.application"
+}
+
+def gitCommitCount = providers.exec {
+    workingDir rootProject.projectDir
+    commandLine "git", "rev-list", "--count", "HEAD"
+    ignoreExitValue = true
+}.standardOutput.asText.map { output ->
+    def count = output.trim()
+    count.isEmpty() ? 1 : Integer.parseInt(count)
+}
+
+android {
+    namespace "dev.glorioustr.hyperosgesturesactivator"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "dev.glorioustr.hyperosgesturesactivator"
+        minSdk 35
+        targetSdk 36
+        versionCode gitCommitCount.get()
+        versionName "0.1.0"
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-diagnostics"
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly "io.github.libxposed:api:102.0.0"
+}

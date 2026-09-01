@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">HyperOS Gestures Activator</string>
+    <string name="module_description">HyperOS 3 navigation diagnostics and gesture navigation unlock research module.</string>
+    <string name="screen_title">Navigation Diagnostics</string>
+    <string name="screen_intro">v0.1.0 is read-only. It records the navigation state changes that occur when the default launcher changes; it does not hide the navigation bar yet.</string>
+    <string name="refresh">Refresh snapshot</string>
+</resources>
