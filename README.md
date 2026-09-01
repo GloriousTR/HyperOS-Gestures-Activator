@@ -14,6 +14,18 @@ değerlerini değiştirmez. Aşağıdaki verileri LSPosed modül loguna kaydeder
 - `NavigationModeController` içindeki mod, launcher, overlay ve gesture alanları;
 - launcher ve navigation mode değişimlerinde çağrılan ilgili SystemUI metotları.
 
+Uygulamadaki **Live Diagnostics** ekranı SystemUI olaylarını 750 ms aralıkla yeniler:
+
+- başarılı, başarısız ve bilgi olaylarını ayrı renklerle gösterir;
+- toplam/başarılı/başarısız/bilgi sayaçları sunar;
+- durum türüne göre filtreleme yapar;
+- hata stack trace'lerini ve olayın process/thread kaynağını saklar;
+- olayları device-protected SQLite veritabanında kalıcı tutar;
+- SystemUI UID'si dışındaki sahte diagnostics göndericilerini reddeder.
+
+Ekran son 1000 olayı gösterir; veritabanı kullanıcı açıkça temizleyene kadar tüm
+olayları saklamaya devam eder.
+
 Bu ayrım bilinçlidir: cihazda çalışan MiuiBackGestureHook 0.4.0 Back hareketini
 sağlamaya devam ederken HGA yalnızca üç tuşlu moda dönüşün kaynağını belirler.
 
@@ -43,6 +55,7 @@ app/build/outputs/apk/debug/app-debug.apk
 3. SystemUI'yi yeniden başlatın veya cihazı yeniden başlatın.
 4. Xiaomi Launcher'ı varsayılan yapın, ardından üçüncü taraf launcher'a geçin.
 5. LSPosed modül logunu dışa aktarın ve `HGA/Diagnostics` ile filtreleyin.
+6. Uygulamayı açarak aynı başarı/hata akışını Live Diagnostics ekranından izleyin.
 
 Ayrıntılı protokol: [docs/hyperos3-investigation.md](docs/hyperos3-investigation.md)
 

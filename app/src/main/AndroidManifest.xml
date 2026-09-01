@@ -16,5 +16,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".DiagnosticEventReceiver"
+            android:directBootAware="true"
+            android:exported="true" />
     </application>
 </manifest>

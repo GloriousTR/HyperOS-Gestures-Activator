@@ -15,6 +15,10 @@ android {
     namespace "dev.glorioustr.hyperosgesturesactivator"
     compileSdk 36
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "dev.glorioustr.hyperosgesturesactivator"
         minSdk 35

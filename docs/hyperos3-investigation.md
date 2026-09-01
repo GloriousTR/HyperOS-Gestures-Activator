@@ -24,6 +24,25 @@ sırasında aşağıdaki geçişlerden en az birini kanıtlayan log üretmelidir
 Logların değişiklik anını yakalaması, v0.2.0 hook'unun sınıf ve metot adını tahmin
 etmek yerine cihazın gerçek HyperOS build'ine göre seçmemizi sağlar.
 
+## Live Diagnostics olay modeli
+
+Her olay aşağıdaki alanlarla kalıcı olarak kaydedilir:
+
+- zaman ve artan olay kimliği;
+- `SUCCESS`, `FAILURE` veya `INFO` durumu;
+- kategori ve işlem adı;
+- ayrıntı veya hata stack trace'i;
+- kaynak process ve thread.
+
+SystemUI içindeki modül olayları açık hedefli bir yerel broadcast ile uygulamadaki
+receiver'a iletilir. Receiver yalnızca Android `SYSTEM_UID` kaynağını kabul eder.
+Veritabanı device-protected storage içinde olduğu için SystemUI'nin erken açılış
+olayları kullanıcı kilidi açılmadan da kaydedilebilir.
+
+Live ekran 750 ms aralıkla yenilenir. Performans için son 1000 olay gösterilir,
+ancak kullanıcı “Kayıtları temizle” işlemini onaylayana kadar eski olaylar
+veritabanından silinmez.
+
 ## Kaydedilen state
 
 ### Settings

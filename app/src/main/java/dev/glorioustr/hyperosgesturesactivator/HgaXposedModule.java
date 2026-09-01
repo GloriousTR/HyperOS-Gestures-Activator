@@ -76,8 +76,10 @@ public final class HgaXposedModule extends XposedModule {
     };
 
     private final List<XposedInterface.HookHandle> hookHandles = new ArrayList<>();
+    private final List<PendingEvent> pendingEvents = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    private String processName = "unknown";
     private Context systemUiContext;
     private Object navigationModeController;
     private ContentObserver settingsObserver;
@@ -88,7 +90,8 @@ public final class HgaXposedModule extends XposedModule {
 
     @Override
     public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
-        log(Log.INFO, TAG, "Module loaded, build=" + BUILD_MARK
+        processName = param.getProcessName();
+        recordSuccess("module", "module-loaded", "build=" + BUILD_MARK
                 + ", process=" + param.getProcessName()
                 + ", systemServer=" + param.isSystemServer());
     }
@@ -99,8 +102,10 @@ public final class HgaXposedModule extends XposedModule {
             return;
         }
         systemUiHooksInstalled = true;
+        processName = param.getPackageName();
         ClassLoader classLoader = param.getDefaultClassLoader();
-        log(Log.INFO, TAG, "SystemUI loaded, source=" + param.getApplicationInfo().sourceDir);
+        recordSuccess("lifecycle", "systemui-package-loaded",
+                "source=" + param.getApplicationInfo().sourceDir);
         installSystemUiApplicationHook(classLoader);
         installNavigationModeControllerHooks(classLoader);
     }
@@ -114,17 +119,28 @@ public final class HgaXposedModule extends XposedModule {
             record(hook(onCreate)
                     .setId("hga_systemui_application_on_create")
                     .intercept(chain -> {
-                        Object result = chain.proceed();
-                        if (chain.getThisObject() instanceof Context) {
-                            attachDiagnostics((Context) chain.getThisObject());
-                        } else {
-                            log(Log.WARN, TAG, "SystemUIApplication did not expose Context");
+                        try {
+                            Object result = chain.proceed();
+                            if (chain.getThisObject() instanceof Context) {
+                                attachDiagnostics((Context) chain.getThisObject());
+                                recordSuccess("lifecycle", "systemui-application-created",
+                                        "SystemUIApplication.onCreate completed");
+                            } else {
+                                recordFailure("lifecycle", "resolve-systemui-context",
+                                        "SystemUIApplication did not expose Context", null);
+                            }
+                            return result;
+                        } catch (Throwable throwable) {
+                            recordFailure("lifecycle", "systemui-application-created",
+                                    "SystemUIApplication.onCreate failed", throwable);
+                            throw throwable;
                         }
-                        return result;
                     }));
-            log(Log.INFO, TAG, "Hooked SystemUIApplication.onCreate");
+            recordSuccess("hook-install", "systemui-application-on-create",
+                    "Hook installed");
         } catch (Throwable throwable) {
-            log(Log.ERROR, TAG, "Failed to hook SystemUIApplication.onCreate", throwable);
+            recordFailure("hook-install", "systemui-application-on-create",
+                    "Hook installation failed", throwable);
         }
     }
 
@@ -133,53 +149,93 @@ public final class HgaXposedModule extends XposedModule {
             Class<?> controllerClass = Class.forName(
                     NAVIGATION_MODE_CONTROLLER, false, classLoader);
             int constructorIndex = 0;
+            int installedConstructors = 0;
             for (Constructor<?> constructor : controllerClass.getDeclaredConstructors()) {
-                constructor.setAccessible(true);
                 final int index = constructorIndex++;
-                record(hook(constructor)
-                        .setId("hga_navigation_controller_ctor_" + index)
-                        .intercept(chain -> {
-                            Object result = chain.proceed();
-                            navigationModeController = chain.getThisObject();
-                            log(Log.INFO, TAG, "NavigationModeController constructed: "
-                                    + describeController(navigationModeController));
-                            scheduleSnapshot("controller-constructed");
-                            return result;
-                        }));
+                try {
+                    constructor.setAccessible(true);
+                    record(hook(constructor)
+                            .setId("hga_navigation_controller_ctor_" + index)
+                            .intercept(chain -> {
+                                try {
+                                    Object result = chain.proceed();
+                                    navigationModeController = chain.getThisObject();
+                                    recordSuccess("hook-event",
+                                            "navigation-controller-constructed",
+                                            describeController(navigationModeController));
+                                    scheduleSnapshot("controller-constructed");
+                                    return result;
+                                } catch (Throwable throwable) {
+                                    recordFailure("hook-event",
+                                            "navigation-controller-constructed",
+                                            "Constructor failed", throwable);
+                                    throw throwable;
+                                }
+                            }));
+                    installedConstructors++;
+                    recordSuccess("hook-install", "navigation-controller-constructor-" + index,
+                            constructor.toGenericString());
+                } catch (Throwable throwable) {
+                    recordFailure("hook-install", "navigation-controller-constructor-" + index,
+                            constructor.toGenericString(), throwable);
+                }
             }
 
             int observedCount = 0;
+            int installedMethods = 0;
             for (Method method : controllerClass.getDeclaredMethods()) {
                 if (!isObservedMethod(method.getName())) {
                     continue;
                 }
-                method.setAccessible(true);
                 String hookId = "hga_navigation_" + method.getName()
                         + "_" + observedCount++;
-                record(hook(method)
-                        .setId(hookId)
-                        .intercept(chain -> traceNavigationDecision(chain, hookId)));
+                try {
+                    method.setAccessible(true);
+                    record(hook(method)
+                            .setId(hookId)
+                            .intercept(chain -> traceNavigationDecision(chain, hookId)));
+                    installedMethods++;
+                    recordSuccess("hook-install", hookId, method.toGenericString());
+                } catch (Throwable throwable) {
+                    recordFailure("hook-install", hookId, method.toGenericString(), throwable);
+                }
             }
-            log(Log.INFO, TAG, "Installed NavigationModeController diagnostics"
-                    + ", constructors=" + constructorIndex
-                    + ", methods=" + observedCount);
+            String summary = "NavigationModeController diagnostics"
+                    + ", constructors=" + installedConstructors + '/' + constructorIndex
+                    + ", methods=" + installedMethods + '/' + observedCount;
+            if (constructorIndex > 0
+                    && observedCount > 0
+                    && installedConstructors == constructorIndex
+                    && installedMethods == observedCount) {
+                recordSuccess("hook-install", "navigation-mode-controller", summary);
+            } else {
+                recordFailure("hook-install", "navigation-mode-controller", summary, null);
+            }
         } catch (Throwable throwable) {
-            log(Log.ERROR, TAG, "NavigationModeController unavailable", throwable);
+            recordFailure("hook-install", "navigation-mode-controller",
+                    "NavigationModeController unavailable", throwable);
         }
     }
 
     private Object traceNavigationDecision(XposedInterface.Chain chain, String hookId)
             throws Throwable {
-        log(Log.INFO, TAG, "before " + hookId
-                + ", args=" + describeArgs(chain.getArgs())
-                + ", controller=" + describeController(chain.getThisObject()));
-        Object result = chain.proceed();
-        navigationModeController = chain.getThisObject();
-        log(Log.INFO, TAG, "after " + hookId
-                + ", result=" + shortValue(result)
-                + ", controller=" + describeController(navigationModeController));
-        scheduleSnapshot(hookId);
-        return result;
+        recordInfo("hook-event", hookId + ":before",
+                "args=" + describeArgs(chain.getArgs())
+                        + ", controller=" + describeController(chain.getThisObject()));
+        try {
+            Object result = chain.proceed();
+            navigationModeController = chain.getThisObject();
+            recordSuccess("hook-event", hookId + ":after",
+                    "result=" + shortValue(result)
+                            + ", controller=" + describeController(navigationModeController));
+            scheduleSnapshot(hookId);
+            return result;
+        } catch (Throwable throwable) {
+            recordFailure("hook-event", hookId + ":after",
+                    "SystemUI method threw after args=" + describeArgs(chain.getArgs()),
+                    throwable);
+            throw throwable;
+        }
     }
 
     private void attachDiagnostics(Context context) {
@@ -189,9 +245,11 @@ public final class HgaXposedModule extends XposedModule {
         diagnosticsAttached = true;
         systemUiContext = context.getApplicationContext() == null
                 ? context : context.getApplicationContext();
+        flushPendingEvents();
         registerSettingsObservers();
         registerLauncherReceiver();
-        log(Log.INFO, TAG, "Read-only diagnostics attached to SystemUI");
+        recordSuccess("diagnostics", "attach-systemui",
+                "Read-only diagnostics attached to SystemUI");
         scheduleSnapshot("systemui-created");
     }
 
@@ -199,7 +257,7 @@ public final class HgaXposedModule extends XposedModule {
         settingsObserver = new ContentObserver(mainHandler) {
             @Override
             public void onChange(boolean selfChange, Uri uri) {
-                log(Log.INFO, TAG, "Observed navigation setting change, uri=" + uri);
+                recordInfo("settings", "setting-changed", "uri=" + uri);
                 scheduleSnapshot("setting-changed:" + uri);
             }
         };
@@ -207,8 +265,9 @@ public final class HgaXposedModule extends XposedModule {
         for (SettingSpec setting : OBSERVED_SETTINGS) {
             try {
                 resolver.registerContentObserver(setting.uri(), false, settingsObserver);
+                recordSuccess("settings", "observe-setting", setting.toString());
             } catch (Throwable throwable) {
-                log(Log.WARN, TAG, "Unable to observe " + setting, throwable);
+                recordFailure("settings", "observe-setting", setting.toString(), throwable);
             }
         }
     }
@@ -218,7 +277,7 @@ public final class HgaXposedModule extends XposedModule {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent == null ? "null" : intent.getAction();
-                log(Log.INFO, TAG, "Launcher-related broadcast: " + action);
+                recordInfo("launcher", "launcher-related-broadcast", action);
                 scheduleSnapshot("broadcast:" + action);
             }
         };
@@ -226,8 +285,11 @@ public final class HgaXposedModule extends XposedModule {
         try {
             systemUiContext.registerReceiver(
                     launcherReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            recordSuccess("launcher", "register-launcher-receiver",
+                    ACTION_PREFERRED_ACTIVITY_CHANGED);
         } catch (Throwable throwable) {
-            log(Log.WARN, TAG, "Unable to register launcher receiver", throwable);
+            recordFailure("launcher", "register-launcher-receiver",
+                    ACTION_PREFERRED_ACTIVITY_CHANGED, throwable);
         }
     }
 
@@ -251,13 +313,27 @@ public final class HgaXposedModule extends XposedModule {
 
     private void logNavigationSnapshot(String reason) {
         try {
-            log(Log.INFO, TAG, "NAV_SNAPSHOT reason=" + reason
-                    + " | home=" + resolveDefaultHome(systemUiContext)
-                    + " | settings=" + readSettings(systemUiContext.getContentResolver())
-                    + " | overlays=" + readNavigationOverlays(systemUiContext)
-                    + " | controller=" + describeController(navigationModeController));
+            String home = resolveDefaultHome(systemUiContext);
+            String settings = readSettings(systemUiContext.getContentResolver());
+            String overlays = readNavigationOverlays(systemUiContext);
+            String detail = "reason=" + reason
+                    + " | home=" + home
+                    + " | settings=" + settings
+                    + " | overlays=" + overlays
+                    + " | controller=" + describeController(navigationModeController);
+            if (home.startsWith("error:")
+                    || "unresolved".equals(home)
+                    || settings.contains("error:")
+                    || overlays.startsWith("error:")
+                    || overlays.contains("unavailable")
+                    || overlays.endsWith("-null")) {
+                recordFailure("snapshot", "capture-navigation-state", detail, null);
+            } else {
+                recordSuccess("snapshot", "capture-navigation-state", detail);
+            }
         } catch (Throwable throwable) {
-            log(Log.ERROR, TAG, "Failed to capture navigation snapshot", throwable);
+            recordFailure("snapshot", "capture-navigation-state",
+                    "reason=" + reason, throwable);
         }
     }
 
@@ -420,6 +496,100 @@ public final class HgaXposedModule extends XposedModule {
     private void record(XposedInterface.HookHandle handle) {
         if (handle != null) {
             hookHandles.add(handle);
+        }
+    }
+
+    private void recordInfo(String category, String operation, String detail) {
+        recordEvent(DiagnosticEvent.STATUS_INFO, category, operation, detail, null);
+    }
+
+    private void recordSuccess(String category, String operation, String detail) {
+        recordEvent(DiagnosticEvent.STATUS_SUCCESS, category, operation, detail, null);
+    }
+
+    private void recordFailure(
+            String category,
+            String operation,
+            String detail,
+            Throwable throwable) {
+        recordEvent(DiagnosticEvent.STATUS_FAILURE, category, operation, detail, throwable);
+    }
+
+    private void recordEvent(
+            String status,
+            String category,
+            String operation,
+            String detail,
+            Throwable throwable) {
+        String completeDetail = detail == null ? "" : detail;
+        if (throwable != null) {
+            completeDetail += "\n" + Log.getStackTraceString(throwable);
+        }
+        String message = status + " " + category + '/' + operation + ": " + completeDetail;
+        if (throwable != null) {
+            log(Log.ERROR, TAG, message, throwable);
+        } else if (DiagnosticEvent.STATUS_FAILURE.equals(status)) {
+            log(Log.ERROR, TAG, message);
+        } else {
+            log(Log.INFO, TAG, message);
+        }
+
+        Context context = systemUiContext;
+        if (context == null) {
+            synchronized (pendingEvents) {
+                pendingEvents.add(new PendingEvent(
+                        status, category, operation, completeDetail, processName));
+            }
+            return;
+        }
+        sendEvent(context, new PendingEvent(
+                status, category, operation, completeDetail, processName));
+    }
+
+    private void flushPendingEvents() {
+        List<PendingEvent> events;
+        synchronized (pendingEvents) {
+            events = new ArrayList<>(pendingEvents);
+            pendingEvents.clear();
+        }
+        for (PendingEvent event : events) {
+            sendEvent(systemUiContext, event);
+        }
+    }
+
+    private void sendEvent(Context context, PendingEvent event) {
+        try {
+            DiagnosticEventReporter.send(
+                    context,
+                    event.status,
+                    event.category,
+                    event.operation,
+                    event.detail,
+                    event.processName);
+        } catch (Throwable throwable) {
+            log(Log.ERROR, TAG, "Unable to deliver live diagnostic event "
+                    + event.category + '/' + event.operation, throwable);
+        }
+    }
+
+    private static final class PendingEvent {
+        final String status;
+        final String category;
+        final String operation;
+        final String detail;
+        final String processName;
+
+        PendingEvent(
+                String status,
+                String category,
+                String operation,
+                String detail,
+                String processName) {
+            this.status = status;
+            this.category = category;
+            this.operation = operation;
+            this.detail = detail;
+            this.processName = processName;
         }
     }
 
