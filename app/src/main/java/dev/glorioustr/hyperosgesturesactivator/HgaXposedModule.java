@@ -31,20 +31,26 @@ import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 
-/**
- * Read-only navigation diagnostics for the first HGA milestone.
- *
- * <p>This version deliberately observes state and SystemUI decisions without changing return
- * values, settings, overlays, or navigation bar visibility.</p>
- */
+/** HyperOS gesture activation guards with persistent live diagnostics. */
 public final class HgaXposedModule extends XposedModule {
     private static final String TAG = "HGA/Diagnostics";
-    private static final String BUILD_MARK = "v0.1.0-navigation-diagnostics";
+    private static final String BUILD_MARK = "v0.2.0-gesture-activation";
     private static final String SYSTEM_UI = "com.android.systemui";
+    private static final String MIUI_LAUNCHER = "com.mi.android.globallauncher";
     private static final String NAVIGATION_MODE_CONTROLLER =
             "com.android.systemui.navigationbar.NavigationModeController";
     private static final String SYSTEM_UI_APPLICATION =
             "com.android.systemui.SystemUIApplication";
+    private static final String PHONE_STATE_GESTURE_GUARD =
+            "com.android.systemui.assist.PhoneStateMonitorController$2";
+    private static final String LAUNCHER_RECENTS =
+            "com.miui.home.recents.BaseRecentsImpl";
+    private static final String LAUNCHER_NAV_STUB =
+            "com.miui.home.recents.NavStubView";
+    private static final String OVERVIEW_COMPONENT_OBSERVER =
+            "com.miui.home.recents.OverviewComponentObserver";
+    private static final String OVERVIEW_COMMAND_HELPER =
+            "com.miui.home.recents.OverviewCommandHelper";
     private static final String ACTION_PREFERRED_ACTIVITY_CHANGED =
             "android.intent.action.ACTION_PREFERRED_ACTIVITY_CHANGED";
 
@@ -85,6 +91,7 @@ public final class HgaXposedModule extends XposedModule {
     private ContentObserver settingsObserver;
     private BroadcastReceiver launcherReceiver;
     private boolean systemUiHooksInstalled;
+    private boolean launcherHooksInstalled;
     private boolean diagnosticsAttached;
     private boolean snapshotScheduled;
 
@@ -98,7 +105,19 @@ public final class HgaXposedModule extends XposedModule {
 
     @Override
     public void onPackageLoaded(XposedModuleInterface.PackageLoadedParam param) {
-        if (!SYSTEM_UI.equals(param.getPackageName()) || systemUiHooksInstalled) {
+        if (SYSTEM_UI.equals(param.getPackageName()) && !systemUiHooksInstalled) {
+            installSystemUiHooks(param);
+            return;
+        }
+        if (MIUI_LAUNCHER.equals(param.getPackageName())
+                && MIUI_LAUNCHER.equals(processName)
+                && !launcherHooksInstalled) {
+            installLauncherHooks(param);
+        }
+    }
+
+    private void installSystemUiHooks(XposedModuleInterface.PackageLoadedParam param) {
+        if (systemUiHooksInstalled) {
             return;
         }
         systemUiHooksInstalled = true;
@@ -108,6 +127,7 @@ public final class HgaXposedModule extends XposedModule {
                 "source=" + param.getApplicationInfo().sourceDir);
         installSystemUiApplicationHook(classLoader);
         installNavigationModeControllerHooks(classLoader);
+        installSystemUiGestureGuard(classLoader);
     }
 
     private void installSystemUiApplicationHook(ClassLoader classLoader) {
@@ -141,6 +161,272 @@ public final class HgaXposedModule extends XposedModule {
         } catch (Throwable throwable) {
             recordFailure("hook-install", "systemui-application-on-create",
                     "Hook installation failed", throwable);
+        }
+    }
+
+    private void installSystemUiGestureGuard(ClassLoader classLoader) {
+        try {
+            Class<?> guardClass = Class.forName(
+                    PHONE_STATE_GESTURE_GUARD, false, classLoader);
+            Method run = guardClass.getDeclaredMethod("run");
+            run.setAccessible(true);
+            record(hook(run)
+                    .setId("hga_keep_gesture_mode_for_third_party_home")
+                    .intercept(chain -> {
+                        Context context = systemUiContext;
+                        if (context == null) {
+                            context = nestedContext(chain.getThisObject());
+                        }
+                        if (context != null && GestureActivation.isEnabled(context)) {
+                            attachEventContext(context);
+                            recordSuccess(
+                                    "activation",
+                                    "prevent-systemui-gesture-disable",
+                                    "Skipped PhoneStateMonitorController forced disable");
+                            return null;
+                        }
+                        return chain.proceed();
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "systemui-third-party-home-guard",
+                    run.toGenericString());
+        } catch (Throwable throwable) {
+            recordFailure(
+                    "hook-install",
+                    "systemui-third-party-home-guard",
+                    PHONE_STATE_GESTURE_GUARD + ".run unavailable",
+                    throwable);
+        }
+    }
+
+    private void installLauncherHooks(XposedModuleInterface.PackageLoadedParam param) {
+        launcherHooksInstalled = true;
+        processName = MIUI_LAUNCHER;
+        ClassLoader classLoader = param.getDefaultClassLoader();
+        recordSuccess("lifecycle", "launcher-package-loaded",
+                "source=" + param.getApplicationInfo().sourceDir);
+        try {
+            Class<?> recentsClass = Class.forName(LAUNCHER_RECENTS, false, classLoader);
+            Method setDefaultHome = recentsClass.getDeclaredMethod(
+                    "setIsUseMiuiHomeAsDefaultHome", boolean.class);
+            setDefaultHome.setAccessible(true);
+            record(hook(setDefaultHome)
+                    .setId("hga_keep_xiaomi_gesture_engine")
+                    .intercept(chain -> {
+                        Context context = directContext(chain.getThisObject(), "mContext");
+                        if (context != null) {
+                            attachEventContext(context);
+                            boolean ready = GestureActivation.markLauncherReady(context);
+                            if (!ready) {
+                                recordFailure(
+                                        "activation",
+                                        "mark-launcher-hook-ready",
+                                        "Unable to write launcher readiness token",
+                                        null);
+                            }
+                        }
+                        boolean requested = Boolean.TRUE.equals(chain.getArg(0));
+                        if (context != null
+                                && GestureActivation.isEnabled(context)
+                                && !requested) {
+                            recordInfo(
+                                    "activation",
+                                    "override-launcher-gesture-eligibility",
+                                    "Changing isUseMiuiHomeAsDefaultHome false -> true");
+                            Object result = chain.proceed(new Object[]{true});
+                            recordSuccess(
+                                    "activation",
+                                    "keep-xiaomi-gesture-engine",
+                                    "Launcher gesture windows remain eligible");
+                            return result;
+                        }
+                        return chain.proceed();
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "launcher-gesture-engine-guard",
+                    setDefaultHome.toGenericString());
+
+            Method updateFsgWindowState = recentsClass.getDeclaredMethod(
+                    "updateFsgWindowState");
+            updateFsgWindowState.setAccessible(true);
+            record(hook(updateFsgWindowState)
+                    .setId("hga_refresh_xiaomi_gesture_windows")
+                    .intercept(chain -> {
+                        Context context = directContext(chain.getThisObject(), "mContext");
+                        if (context != null) {
+                            attachEventContext(context);
+                        }
+                        if (context != null && GestureActivation.isEnabled(context)) {
+                            if (writeBooleanField(
+                                    chain.getThisObject(),
+                                    "mIsUseMiuiHomeAsDefaultHome",
+                                    true)) {
+                                recordInfo(
+                                        "activation",
+                                        "refresh-launcher-gesture-eligibility",
+                                        "Set mIsUseMiuiHomeAsDefaultHome=true before window refresh");
+                            } else {
+                                recordFailure(
+                                        "activation",
+                                        "refresh-launcher-gesture-eligibility",
+                                        "Unable to update launcher eligibility field",
+                                        null);
+                            }
+                        }
+                        Object result = chain.proceed();
+                        if (context != null && GestureActivation.isEnabled(context)) {
+                            recordSuccess(
+                                    "activation",
+                                    "refresh-xiaomi-gesture-windows",
+                                    "Launcher gesture window state refreshed");
+                        }
+                        return result;
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "launcher-gesture-window-refresh",
+                    updateFsgWindowState.toGenericString());
+        } catch (Throwable throwable) {
+            recordFailure(
+                    "hook-install",
+                    "launcher-gesture-engine-guard",
+                    LAUNCHER_RECENTS + " method unavailable",
+                    throwable);
+        }
+        installLauncherOverviewHook(classLoader);
+    }
+
+    private void installLauncherOverviewHook(ClassLoader classLoader) {
+        try {
+            Class<?> navStubClass = Class.forName(
+                    LAUNCHER_NAV_STUB, false, classLoader);
+            Class<?> observerClass = Class.forName(
+                    OVERVIEW_COMPONENT_OBSERVER, false, classLoader);
+            Class<?> commandClass = Class.forName(
+                    OVERVIEW_COMMAND_HELPER, false, classLoader);
+
+            Method performAppToRecents = navStubClass.getDeclaredMethod(
+                    "performAppToRecents", boolean.class);
+            Method performAppToHome = navStubClass.getDeclaredMethod(
+                    "performAppToHome");
+            Method finishDirectly = navStubClass.getDeclaredMethod(
+                    "finishDirectly", boolean.class);
+            Method finishRecentsActivityDirectly = navStubClass.getDeclaredMethod(
+                    "finishRecentsActivityDirectly");
+            Method getObserver = observerClass.getDeclaredMethod(
+                    "getInstance", Context.class);
+            Method updateTargets = observerClass.getDeclaredMethod(
+                    "updateOverviewTargets");
+            Method getHomeIntent = observerClass.getDeclaredMethod(
+                    "getHomeIntent");
+            Constructor<?> commandConstructor = commandClass.getDeclaredConstructor(
+                    Context.class, observerClass);
+            Method onOverviewToggle = commandClass.getDeclaredMethod(
+                    "onOverviewToggle");
+            performAppToRecents.setAccessible(true);
+            performAppToHome.setAccessible(true);
+            finishDirectly.setAccessible(true);
+            finishRecentsActivityDirectly.setAccessible(true);
+            getObserver.setAccessible(true);
+            updateTargets.setAccessible(true);
+            getHomeIntent.setAccessible(true);
+            commandConstructor.setAccessible(true);
+            onOverviewToggle.setAccessible(true);
+
+            record(hook(performAppToRecents)
+                    .setId("hga_route_third_party_overview")
+                    .intercept(chain -> {
+                        Object navStub = chain.getThisObject();
+                        Context context = directContext(navStub, "mContext");
+                        if (context == null
+                                || !GestureActivation.isEnabled(context)
+                                || readField(navStub, "mLauncher") != null) {
+                            return chain.proceed();
+                        }
+                        attachEventContext(context);
+                        try {
+                            Object observer = getObserver.invoke(null, context);
+                            updateTargets.invoke(observer);
+                            Object command = commandConstructor.newInstance(
+                                    context, observer);
+                            finishDirectly.invoke(navStub, false);
+                            finishRecentsActivityDirectly.invoke(navStub);
+                            onOverviewToggle.invoke(command);
+                            recordSuccess(
+                                    "activation",
+                                    "route-third-party-overview",
+                                    "Gesture release dispatched to Xiaomi fallback RecentsActivity");
+                            return null;
+                        } catch (Throwable throwable) {
+                            recordFailure(
+                                    "activation",
+                                    "route-third-party-overview",
+                                    "Official Overview fallback dispatch failed",
+                                    throwable);
+                            return chain.proceed();
+                        }
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "launcher-third-party-overview-route",
+                    performAppToRecents.toGenericString());
+
+            record(hook(performAppToHome)
+                    .setId("hga_route_third_party_home")
+                    .intercept(chain -> {
+                        Object navStub = chain.getThisObject();
+                        Context context = directContext(navStub, "mContext");
+                        if (context == null
+                                || !GestureActivation.isEnabled(context)
+                                || readField(navStub, "mLauncher") != null) {
+                            return chain.proceed();
+                        }
+                        attachEventContext(context);
+                        try {
+                            Object observer = getObserver.invoke(null, context);
+                            updateTargets.invoke(observer);
+                            Intent observedHomeIntent = (Intent) getHomeIntent.invoke(observer);
+                            if (observedHomeIntent == null) {
+                                recordFailure(
+                                        "activation",
+                                        "route-third-party-home",
+                                        "Overview observer returned no default HOME intent",
+                                        null);
+                                return chain.proceed();
+                            }
+                            Intent homeIntent = new Intent(observedHomeIntent)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                            | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                            finishDirectly.invoke(navStub, false);
+                            finishRecentsActivityDirectly.invoke(navStub);
+                            context.startActivity(homeIntent);
+                            recordSuccess(
+                                    "activation",
+                                    "route-third-party-home",
+                                    "Gesture release dispatched to observed default HOME: "
+                                            + homeIntent.getComponent());
+                            return null;
+                        } catch (Throwable throwable) {
+                            recordFailure(
+                                    "activation",
+                                    "route-third-party-home",
+                                    "Observed default HOME dispatch failed",
+                                    throwable);
+                            return chain.proceed();
+                        }
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "launcher-third-party-home-route",
+                    performAppToHome.toGenericString());
+        } catch (Throwable throwable) {
+            recordFailure(
+                    "hook-install",
+                    "launcher-third-party-overview-route",
+                    LAUNCHER_NAV_STUB + " Overview route unavailable",
+                    throwable);
         }
     }
 
@@ -246,11 +532,50 @@ public final class HgaXposedModule extends XposedModule {
         systemUiContext = context.getApplicationContext() == null
                 ? context : context.getApplicationContext();
         flushPendingEvents();
+        if (GestureActivation.markSystemUiReady(systemUiContext)) {
+            recordSuccess(
+                    "activation",
+                    "mark-systemui-hook-ready",
+                    "SystemUI activation guard is ready");
+        } else {
+            recordFailure(
+                    "activation",
+                    "mark-systemui-hook-ready",
+                    "Unable to write SystemUI readiness token",
+                    null);
+        }
+        if (GestureActivation.isEnabled(systemUiContext)) {
+            boolean restored = GestureActivation.writeGlobalInt(
+                    systemUiContext,
+                    GestureActivation.KEY_FORCE_FSG_NAV_BAR,
+                    1);
+            if (restored) {
+                recordSuccess(
+                        "activation",
+                        "restore-gesture-mode-on-systemui-start",
+                        "force_fsg_nav_bar=1");
+            } else {
+                recordFailure(
+                        "activation",
+                        "restore-gesture-mode-on-systemui-start",
+                        "Unable to restore force_fsg_nav_bar",
+                        null);
+            }
+        }
         registerSettingsObservers();
         registerLauncherReceiver();
         recordSuccess("diagnostics", "attach-systemui",
                 "Read-only diagnostics attached to SystemUI");
         scheduleSnapshot("systemui-created");
+    }
+
+    private void attachEventContext(Context context) {
+        if (context == null || systemUiContext != null) {
+            return;
+        }
+        systemUiContext = context.getApplicationContext() == null
+                ? context : context.getApplicationContext();
+        flushPendingEvents();
     }
 
     private void registerSettingsObservers() {
@@ -487,6 +812,58 @@ public final class HgaXposedModule extends XposedModule {
         } catch (Throwable ignored) {
             return fallback;
         }
+    }
+
+    private static Context nestedContext(Object target) {
+        Object outer = readField(target, "this$0");
+        return directContext(outer, "mContext");
+    }
+
+    private static Context directContext(Object target, String fieldName) {
+        Object value = readField(target, fieldName);
+        return value instanceof Context ? (Context) value : null;
+    }
+
+    private static Object readField(Object target, String fieldName) {
+        if (target == null) {
+            return null;
+        }
+        Class<?> current = target.getClass();
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field.get(target);
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static boolean writeBooleanField(
+            Object target,
+            String fieldName,
+            boolean value) {
+        if (target == null) {
+            return false;
+        }
+        Class<?> current = target.getClass();
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                field.setBoolean(target, value);
+                return true;
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            } catch (Throwable ignored) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private static Method findMethod(Class<?> type, String methodName, int parameterCount) {

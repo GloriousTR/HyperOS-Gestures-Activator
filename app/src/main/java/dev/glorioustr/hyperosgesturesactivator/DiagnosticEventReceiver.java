@@ -17,7 +17,10 @@ public final class DiagnosticEventReceiver extends BroadcastReceiver {
 
         int senderUid = getSentFromUid();
         int systemUiUid = resolveSystemUiUid(context);
-        if (senderUid != Process.INVALID_UID && senderUid != systemUiUid) {
+        int launcherUid = resolvePackageUid(context, "com.mi.android.globallauncher", -1);
+        if (senderUid != Process.INVALID_UID
+                && senderUid != systemUiUid
+                && senderUid != launcherUid) {
             DiagnosticDatabase.get(context).insert(new DiagnosticEvent(
                     0L,
                     System.currentTimeMillis(),
@@ -26,6 +29,7 @@ public final class DiagnosticEventReceiver extends BroadcastReceiver {
                     "reject-diagnostic-event",
                     "Rejected sender uid=" + senderUid
                             + ", expectedSystemUiUid=" + systemUiUid
+                            + ", expectedLauncherUid=" + launcherUid
                             + ", package=" + getSentFromPackage(),
                     context.getPackageName(),
                     Thread.currentThread().getName()));
@@ -63,13 +67,17 @@ public final class DiagnosticEventReceiver extends BroadcastReceiver {
     }
 
     private static int resolveSystemUiUid(Context context) {
+        return resolvePackageUid(context, "com.android.systemui", Process.SYSTEM_UID);
+    }
+
+    private static int resolvePackageUid(Context context, String packageName, int fallback) {
         try {
             ApplicationInfo info = context.getPackageManager().getApplicationInfo(
-                    "com.android.systemui",
+                    packageName,
                     PackageManager.ApplicationInfoFlags.of(0L));
             return info.uid;
         } catch (Throwable throwable) {
-            return Process.SYSTEM_UID;
+            return fallback;
         }
     }
 }

@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">HyperOS Gestures Activator</string>
-    <string name="module_description">HyperOS 3 navigation diagnostics and gesture navigation unlock research module.</string>
-    <string name="screen_title">Live Diagnostics</string>
+    <string name="module_description">HyperOS 3 gesture navigation activation and live diagnostics module.</string>
+    <string name="screen_title">Gesture Activation and Live Diagnostics</string>
 </resources>

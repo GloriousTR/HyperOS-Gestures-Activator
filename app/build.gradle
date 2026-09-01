@@ -24,13 +24,13 @@ android {
         minSdk 35
         targetSdk 36
         versionCode gitCommitCount.get()
-        versionName "0.1.0"
+        versionName "0.2.0"
     }
 
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
-            versionNameSuffix "-diagnostics"
+            versionNameSuffix "-activation"
         }
         release {
             minifyEnabled true

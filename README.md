@@ -3,10 +3,31 @@
 HyperOS 3'te üçüncü taraf bir launcher varsayılan HOME iken yerel hareketle gezinme
 altyapısını kullanılabilir tutmayı araştıran LSPosed/Vector modülü.
 
-## Şu anki sürüm: v0.1.0 Navigation Diagnostics
+## Şu anki sürüm: v0.2.0 Gesture Activation
 
-Bu ilk build **salt okunurdur**. Gezinme ayarlarını, overlay'leri veya SystemUI dönüş
-değerlerini değiştirmez. Aşağıdaki verileri LSPosed modül loguna kaydeder:
+Bu sürüm, Smart Launcher gibi üçüncü taraf bir HOME kullanılırken HyperOS'un yerel
+Home, Son Uygulamalar ve Geri hareketlerini doğrudan kullanılabilir tutar. Açma
+işlemi yalnızca SystemUI ile Xiaomi/POCO Launcher korumaları o açılış için hazırsa
+çalışır. **Güvenli kapat** düğmesi aktivasyonu kapatır ve önceki gezinme ayarını
+geri yükler.
+
+Dar kapsamlı çözüm dört parçadan oluşur:
+
+- SystemUI'nin üçüncü taraf HOME algıladığında gesture modunu zorla kapatan kararını
+  yalnız aktivasyon açıkken engellemek;
+- Xiaomi/POCO Launcher'ın yerel alt ve yan gesture pencerelerini kullanılabilir
+  tutmak;
+- üçüncü taraf HOME'da yukarı kaydırıp bekletmeyi Xiaomi'nin resmi fallback
+  `RecentsActivity` / Overview yoluna yönlendirmek;
+- `force_fsg_nav_bar` değişimini uygulamadaki açık kapalı durumuyla yönetmek.
+
+`KEYCODE_HOME` veya sahte dokunma kullanılmaz. Girdi Xiaomi'nin yerel gesture
+pencerelerinden gelir. Üçüncü taraf launcher kullanılırken Home bırakma anı,
+Xiaomi `OverviewComponentObserver` nesnesinin belirlediği gerçek varsayılan HOME
+intent'ine; Son Uygulamalar ise resmi `OverviewCommandHelper` yoluna verilir. Back
+hareketi cihazdaki mevcut Xiaomi/MiuiBackGestureHook davranışını korur.
+
+Modül aşağıdaki verileri LSPosed/Vector loguna ve Live Diagnostics ekranına kaydeder:
 
 - varsayılan HOME bileşeni;
 - `force_fsg_nav_bar`, `navigation_mode` ve Xiaomi'ye özgü ilgili ayarlar;
@@ -21,13 +42,14 @@ Uygulamadaki **Live Diagnostics** ekranı SystemUI olaylarını 750 ms aralıkla
 - durum türüne göre filtreleme yapar;
 - hata stack trace'lerini ve olayın process/thread kaynağını saklar;
 - olayları device-protected SQLite veritabanında kalıcı tutar;
-- SystemUI UID'si dışındaki sahte diagnostics göndericilerini reddeder.
+- SystemUI ve Xiaomi Launcher'ın gerçek UID'leri dışındaki diagnostics
+  göndericilerini reddeder.
 
 Ekran son 1000 olayı gösterir; veritabanı kullanıcı açıkça temizleyene kadar tüm
 olayları saklamaya devam eder.
 
-Bu ayrım bilinçlidir: cihazda çalışan MiuiBackGestureHook 0.4.0 Back hareketini
-sağlamaya devam ederken HGA yalnızca üç tuşlu moda dönüşün kaynağını belirler.
+Kullanıcının ayrıca kurulu MiuiBackGestureHook 0.4.0 modülüne, ayarlarına veya
+kapsamına dokunulmaz.
 
 ## Derleme
 
@@ -51,23 +73,35 @@ app/build/outputs/apk/debug/app-debug.apk
 ## Cihaz test akışı
 
 1. APK'yı yükleyin.
-2. LSPosed/Vector içinde modülü etkinleştirin; scope yalnızca `System UI` olmalıdır.
-3. SystemUI'yi yeniden başlatın veya cihazı yeniden başlatın.
-4. Xiaomi Launcher'ı varsayılan yapın, ardından üçüncü taraf launcher'a geçin.
-5. LSPosed modül logunu dışa aktarın ve `HGA/Diagnostics` ile filtreleyin.
-6. Uygulamayı açarak aynı başarı/hata akışını Live Diagnostics ekranından izleyin.
+2. Uygulamaya bir kez `WRITE_SECURE_SETTINGS` izni verin:
+
+   ```powershell
+   adb shell pm grant dev.glorioustr.hyperosgesturesactivator.debug android.permission.WRITE_SECURE_SETTINGS
+   ```
+
+3. Vector/LSPosed içinde modülü etkinleştirin ve sabit kapsamda hem **Sistem
+   Arayüzü** (`com.android.systemui`) hem **POCO/Xiaomi Başlatıcı**
+   (`com.mi.android.globallauncher`) seçili olduğunu doğrulayın.
+4. Cihazı yeniden başlatın. Varsayılan HOME üçüncü taraf launcher olarak kalabilir.
+5. Uygulamada SystemUI ve Launcher yanında `✓` görünce **Hareketleri aç** düğmesine
+   dokunun.
+6. Sorun olursa **Güvenli kapat** düğmesine dokunun ve Live Diagnostics ekranındaki
+   son başarısız işlemi inceleyin.
 
 Ayrıntılı protokol: [docs/hyperos3-investigation.md](docs/hyperos3-investigation.md)
 
 ## Yol haritası
 
 - `v0.1.0`: Navigation Diagnostics — salt okunur state ve karar yolu kaydı.
-- `v0.2.0`: Navbar Unlock — doğrulanan SystemUI yolunda üç tuşlu moda dönüşü engelleme.
-- `v0.3.0`: Bottom Gesture Probe — alt kenar HOME/RECENTS/QUICK_SWITCH adayları.
-- `v0.4.0+`: WM Shell/Quickstep üzerinden native Home, Recents ve Quick Switch.
+- `v0.2.0`: Gesture Activation — Home, Recents ve Back; güvenli aç/kapat ve canlı
+  teşhis.
+- `v0.3.0`: Quick Switch doğrulaması, cihaz uyumluluk profilleri ve daha ayrıntılı
+  sağlık kontrolleri.
+- `v0.4.0+`: Ek HyperOS/launcher sürümleri için taşınabilir hook seçimi.
 
-`KEYCODE_HOME` enjeksiyonu nihai mimari değildir. Hedef SystemUI → WM Shell →
-RecentsAnimation/Overview zincirini kullanmaktır.
+`KEYCODE_HOME` enjeksiyonu kullanılmaz. Son Uygulamalar için resmi
+RecentsAnimation/Overview zinciri, Home için sistemin gözlemlediği varsayılan HOME
+intent'i kullanılır.
 
 ## Kaynak ve lisans
 

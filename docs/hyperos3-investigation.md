@@ -24,6 +24,35 @@ sırasında aşağıdaki geçişlerden en az birini kanıtlayan log üretmelidir
 Logların değişiklik anını yakalaması, v0.2.0 hook'unun sınıf ve metot adını tahmin
 etmek yerine cihazın gerçek HyperOS build'ine göre seçmemizi sağlar.
 
+## v0.2.0 cihaz bulgusu ve çözüm
+
+POCO/Xiaomi Launcher varsayılan HOME iken alt ve yan gesture pencereleri oluşturulur.
+Smart Launcher varsayılan yapıldığında iki ayrı üretici kontrolü devreye girer:
+
+1. `PhoneStateMonitorController$2.run()` SystemUI içinden
+   `global/force_fsg_nav_bar=0` yazar.
+2. `OverviewComponentObserver.updateOverviewTargets()` Xiaomi Launcher içinden
+   `BaseRecentsImpl.setIsUseMiuiHomeAsDefaultHome(false)` çağırır; bunun sonucunda
+   Home, sol Back ve sağ Back gesture pencereleri kaldırılır.
+
+v0.2.0, yalnız uygulama aktivasyonu açıkken bu iki kararı korur. Ayrıca Xiaomi'nin
+`NavStubView.performAppToRecents(boolean)` metodu üçüncü taraf HOME durumunda
+`mLauncher=null` nedeniyle Recents yerine Home'a döndüğü için bırakma anı resmi
+`OverviewCommandHelper` fallback yoluna verilir. Hedef ekran Xiaomi
+`RecentsActivity`'dir ve WM Shell RecentsAnimation başlangıcı korunur. Aynı üçüncü
+taraf durumda `performAppToHome()` bırakma anı,
+`OverviewComponentObserver.getHomeIntent()` ile çözülen gerçek varsayılan HOME
+intent'ine yönlendirilir. Her iki rotada da `KEYCODE_HOME` kullanılmaz.
+
+Aktivasyon, her açılış için iki hazır işareti ister:
+
+- `hga_systemui_hook_ready=v0.2.0:<boot_count>`
+- `hga_launcher_hook_ready=v0.2.0:<boot_count>`
+
+Bu işaretlerden biri yoksa uygulama navbarı gizlemez. Güvenli kapatma önce
+`hga_gesture_activation_enabled=0` yazar, sonra aktivasyondan önceki
+`force_fsg_nav_bar` değerini geri yükler.
+
 ## Live Diagnostics olay modeli
 
 Her olay aşağıdaki alanlarla kalıcı olarak kaydedilir:
@@ -34,8 +63,10 @@ Her olay aşağıdaki alanlarla kalıcı olarak kaydedilir:
 - ayrıntı veya hata stack trace'i;
 - kaynak process ve thread.
 
-SystemUI içindeki modül olayları açık hedefli bir yerel broadcast ile uygulamadaki
-receiver'a iletilir. Receiver yalnızca Android `SYSTEM_UID` kaynağını kabul eder.
+SystemUI ve Xiaomi Launcher içindeki modül olayları açık hedefli bir yerel broadcast
+ile uygulamadaki receiver'a iletilir. Receiver yalnızca cihazdaki gerçek SystemUI
+ve Xiaomi Launcher UID'lerini kabul eder; receiver ayrıca sistem ayrıcalıklı yayın
+izniyle korunur.
 Veritabanı device-protected storage içinde olduğu için SystemUI'nin erken açılış
 olayları kullanıcı kilidi açılmadan da kaydedilebilir.
 
@@ -80,7 +111,23 @@ metot adları varsa sadece giriş/çıkışları izlenir:
 
 Metot bulunmaması modülü durdurmaz; bu da cihaz uyumluluk bulgusudur.
 
-## Test matrisi
+## v0.2.0 işlev testi
+
+Varsayılan HOME üçüncü taraf launcher iken aşağıdakilerin tamamı doğrulanmalıdır:
+
+| Test | Beklenen sonuç |
+|---|---|
+| **Hareketleri aç** | `activation=1`, `force_fsg_nav_bar=1`, `navigation_mode=2` |
+| Kısa alt kaydırma | Üçüncü taraf HOME açılır |
+| Alt kaydır ve beklet | Xiaomi `RecentsActivity` açılır |
+| Sol/sağ kenardan içeri kaydırma | Geri işlemi çalışır |
+| **Güvenli kapat** | Önceki navbar modu döner, gesture pencereleri kaldırılır |
+| Yeniden başlatma | Aynı HOME korunur ve aktivasyon kendiliğinden geri gelir |
+
+WindowManager'da aktif durumda `GestureStubHome`, `GestureStubLeft` ve
+`GestureStubRight` pencerelerinin üçü de bulunmalıdır.
+
+## v0.1.0 test matrisi
 
 Her satır için launcher seçildikten sonra 10 saniye bekleyin ve navbar görünümüyle
 birlikte log zamanını not edin.

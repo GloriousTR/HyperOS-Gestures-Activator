@@ -1,9 +1,11 @@
 package dev.glorioustr.hyperosgesturesactivator;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
@@ -38,6 +40,7 @@ public final class DiagnosticsActivity extends Activity {
     private final Runnable liveRefresh = new Runnable() {
         @Override
         public void run() {
+            updateActivationState();
             reloadEvents();
             liveHandler.postDelayed(this, LIVE_REFRESH_INTERVAL_MS);
         }
@@ -45,6 +48,7 @@ public final class DiagnosticsActivity extends Activity {
 
     private DiagnosticDatabase database;
     private TextView liveStateView;
+    private TextView activationStateView;
     private TextView summaryView;
     private TextView filterView;
     private ListView eventList;
@@ -109,6 +113,20 @@ public final class DiagnosticsActivity extends Activity {
         liveStateView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         liveStateView.setPadding(0, dp(6), 0, dp(4));
         root.addView(liveStateView, matchWrap());
+
+        activationStateView = new TextView(this);
+        activationStateView.setTextSize(14);
+        activationStateView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        activationStateView.setPadding(0, dp(4), 0, dp(4));
+        root.addView(activationStateView, matchWrap());
+
+        LinearLayout activationControls = new LinearLayout(this);
+        activationControls.setOrientation(LinearLayout.HORIZONTAL);
+        addWeightedButton(activationControls,
+                actionButton("Hareketleri aç", view -> setGestureActivation(true)));
+        addWeightedButton(activationControls,
+                actionButton("Güvenli kapat", view -> setGestureActivation(false)));
+        root.addView(activationControls, matchWrap());
 
         summaryView = new TextView(this);
         summaryView.setTextColor(Color.rgb(73, 69, 79));
@@ -221,11 +239,120 @@ public final class DiagnosticsActivity extends Activity {
         }
     }
 
+    private void updateActivationState() {
+        if (activationStateView == null) {
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
+                != PackageManager.PERMISSION_GRANTED) {
+            activationStateView.setText("● YETKİ GEREKLİ — aktivasyon izni verilmemiş");
+            activationStateView.setTextColor(Color.rgb(186, 26, 26));
+            return;
+        }
+        boolean enabled = GestureActivation.isEnabled(this);
+        boolean systemUiReady = GestureActivation.isSystemUiReady(this);
+        boolean launcherReady = GestureActivation.isLauncherReady(this);
+        int forceFsg = GestureActivation.readGlobalInt(
+                this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, 0);
+        int navigationMode = readSecureInt(GestureActivation.KEY_NAVIGATION_MODE, -1);
+        String readiness = "SystemUI " + (systemUiReady ? "✓" : "…")
+                + " · Launcher " + (launcherReady ? "✓" : "…");
+        if (enabled && forceFsg == 1 && navigationMode == 2) {
+            activationStateView.setText("● AKTİF — hareketle gezinme açık · " + readiness);
+            activationStateView.setTextColor(Color.rgb(20, 125, 70));
+        } else if (enabled) {
+            activationStateView.setText("● BAŞLATILIYOR — sistem geçişi bekleniyor · " + readiness);
+            activationStateView.setTextColor(Color.rgb(151, 84, 0));
+        } else {
+            activationStateView.setText("○ KAPALI — " + readiness);
+            activationStateView.setTextColor(Color.rgb(73, 69, 79));
+        }
+    }
+
+    private void setGestureActivation(boolean enabled) {
+        if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
+                != PackageManager.PERMISSION_GRANTED) {
+            recordAppEvent(
+                    DiagnosticEvent.STATUS_FAILURE,
+                    "activation",
+                    "change-gesture-activation",
+                    "WRITE_SECURE_SETTINGS permission missing");
+            new AlertDialog.Builder(this)
+                    .setTitle("Aktivasyon izni gerekli")
+                    .setMessage("Uygulamanın sistem gezinme modunu güvenli biçimde değiştirme izni yok.")
+                    .setPositiveButton("Tamam", null)
+                    .show();
+            reloadEvents();
+            return;
+        }
+        if (enabled
+                && (!GestureActivation.isSystemUiReady(this)
+                || !GestureActivation.isLauncherReady(this))) {
+            recordAppEvent(
+                    DiagnosticEvent.STATUS_FAILURE,
+                    "activation",
+                    "enable-gesture-navigation",
+                    "Hooks not ready: systemUi=" + GestureActivation.isSystemUiReady(this)
+                            + ", launcher=" + GestureActivation.isLauncherReady(this));
+            new AlertDialog.Builder(this)
+                    .setTitle("Modül henüz hazır değil")
+                    .setMessage("SystemUI ve Xiaomi Launcher hook'ları hazır olmadan gezinme çubuğu gizlenmeyecek. SystemUI ile Launcher yeniden başlatılmalı.")
+                    .setPositiveButton("Tamam", null)
+                    .show();
+            reloadEvents();
+            return;
+        }
+
+        SharedPreferences preferences = createDeviceProtectedStorageContext()
+                .getSharedPreferences("gesture_activation", MODE_PRIVATE);
+        boolean wasEnabled = GestureActivation.isEnabled(this);
+        if (enabled && !wasEnabled) {
+            preferences.edit().putInt(
+                    "previous_force_fsg_nav_bar",
+                    GestureActivation.readGlobalInt(
+                            this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, 0)).apply();
+        }
+        int forceValue = enabled
+                ? 1 : preferences.getInt("previous_force_fsg_nav_bar", 0);
+        boolean activationWritten = GestureActivation.writeGlobalInt(
+                this, GestureActivation.KEY_ENABLED, enabled ? 1 : 0);
+        boolean forceWritten = GestureActivation.writeGlobalInt(
+                this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, forceValue);
+        String operation = enabled
+                ? "enable-gesture-navigation" : "disable-gesture-navigation";
+        if (activationWritten && forceWritten) {
+            recordAppEvent(
+                    DiagnosticEvent.STATUS_SUCCESS,
+                    "activation",
+                    operation,
+                    "enabled=" + enabled + " | force_fsg_nav_bar=" + forceValue);
+        } else {
+            recordAppEvent(
+                    DiagnosticEvent.STATUS_FAILURE,
+                    "activation",
+                    operation,
+                    "activationWritten=" + activationWritten
+                            + " | forceWritten=" + forceWritten);
+        }
+        renderedTotal = -1L;
+        updateActivationState();
+        reloadEvents();
+        liveHandler.postDelayed(
+                () -> captureAppSnapshot("activation-settled:" + enabled),
+                1500L);
+    }
+
     private void captureAppSnapshot(String reason) {
         try {
             String detail = "reason=" + reason
                     + " | " + buildDeviceSummary()
                     + " | defaultHome=" + resolveDefaultHome()
+                    + " | activation=" + GestureActivation.isEnabled(this)
+                    + " | hooks={systemUi=" + GestureActivation.isSystemUiReady(this)
+                    + ",launcher=" + GestureActivation.isLauncherReady(this) + "}"
+                    + " | global/force_fsg_nav_bar="
+                    + GestureActivation.readGlobalInt(
+                            this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, -1)
                     + " | secure/force_fsg_nav_bar=" + readSecure("force_fsg_nav_bar")
                     + " | secure/navigation_mode=" + readSecure("navigation_mode")
                     + " | secure/navigation_bar_mode=" + readSecure("navigation_bar_mode")
@@ -310,6 +437,14 @@ public final class DiagnosticsActivity extends Activity {
             return value == null ? "<null>" : value;
         } catch (Throwable throwable) {
             return "error:" + throwable.getClass().getSimpleName();
+        }
+    }
+
+    private int readSecureInt(String key, int fallback) {
+        try {
+            return Settings.Secure.getInt(getContentResolver(), key, fallback);
+        } catch (Throwable throwable) {
+            return fallback;
         }
     }
 
