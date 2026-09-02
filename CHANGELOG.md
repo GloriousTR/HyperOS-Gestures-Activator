@@ -5,8 +5,8 @@
 - Üçüncü taraf HOME kullanılırken alt kenarda iki yönlü hızlı uygulama geçişi eklendi.
 - Yatay ve dikey alt hareketler, yön belirlenene kadar güvenli bir sınıflandırıcıyla
   ayrılıyor; Home/Recents akışı değiştirilmeden korunuyor.
-- Xiaomi RecentsView bulunmadığında geçiş hedefi Android'in son görev listesinden
-  çözümleniyor.
+- Yatay harekette kararsız Xiaomi RecentsAnimation başlatılmadan geçiş hedefi
+  Android'in son görev listesinden çözümleniyor.
 - Hızlı geçiş hedefi, bileşeni ve başarı/hata sonucu Live Diagnostics'e ekleniyor.
 - Ardışık uzak animasyonların sistem girişini kilitlemesini önlemek için hızlı geçişte
   650 ms güvenlik aralığı uygulanıyor.
