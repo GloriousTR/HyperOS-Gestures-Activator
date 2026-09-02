@@ -27,6 +27,11 @@ Xiaomi `OverviewComponentObserver` nesnesinin belirlediği gerçek varsayılan H
 intent'ine; Son Uygulamalar ise resmi `OverviewCommandHelper` yoluna verilir. Back
 hareketi cihazdaki mevcut Xiaomi/MiuiBackGestureHook davranışını korur.
 
+Profesyonel ana kontrol paneli aktivasyon durumunu, SystemUI/Launcher sağlığını,
+varsayılan ana ekranı ve temel hareketleri tek bakışta gösterir. Ayrıntılı olay
+akışı ana ekranı kalabalıklaştırmaz; sağ üst menüdeki veya **Sistem araçları**
+bölümündeki **Live Diagnostics** seçeneğiyle ayrı ekranda açılır.
+
 Modül aşağıdaki verileri LSPosed/Vector loguna ve Live Diagnostics ekranına kaydeder:
 
 - varsayılan HOME bileşeni;
@@ -83,10 +88,11 @@ app/build/outputs/apk/debug/app-debug.apk
    Arayüzü** (`com.android.systemui`) hem **POCO/Xiaomi Başlatıcı**
    (`com.mi.android.globallauncher`) seçili olduğunu doğrulayın.
 4. Cihazı yeniden başlatın. Varsayılan HOME üçüncü taraf launcher olarak kalabilir.
-5. Uygulamada SystemUI ve Launcher yanında `✓` görünce **Hareketleri aç** düğmesine
+5. Uygulamada SystemUI ve Launcher yanında `Hazır` görünce **Hareketleri
+   etkinleştir** düğmesine
    dokunun.
-6. Sorun olursa **Güvenli kapat** düğmesine dokunun ve Live Diagnostics ekranındaki
-   son başarısız işlemi inceleyin.
+6. Sorun olursa **Güvenli şekilde kapat** düğmesine dokunun ve ana menüden Live
+   Diagnostics ekranını açarak son başarısız işlemi inceleyin.
 
 Ayrıntılı protokol: [docs/hyperos3-investigation.md](docs/hyperos3-investigation.md)
 

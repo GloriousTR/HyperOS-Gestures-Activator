@@ -1,16 +1,15 @@
 package dev.glorioustr.hyperosgesturesactivator;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -40,7 +39,6 @@ public final class DiagnosticsActivity extends Activity {
     private final Runnable liveRefresh = new Runnable() {
         @Override
         public void run() {
-            updateActivationState();
             reloadEvents();
             liveHandler.postDelayed(this, LIVE_REFRESH_INTERVAL_MS);
         }
@@ -48,7 +46,6 @@ public final class DiagnosticsActivity extends Activity {
 
     private DiagnosticDatabase database;
     private TextView liveStateView;
-    private TextView activationStateView;
     private TextView summaryView;
     private TextView filterView;
     private ListView eventList;
@@ -90,7 +87,7 @@ public final class DiagnosticsActivity extends Activity {
     private View buildScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(247, 242, 250));
+        root.setBackgroundColor(Color.rgb(246, 248, 252));
         root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsets.Type.systemBars());
             view.setPadding(
@@ -101,32 +98,45 @@ public final class DiagnosticsActivity extends Activity {
             return windowInsets;
         });
 
+        LinearLayout topBar = new LinearLayout(this);
+        topBar.setOrientation(LinearLayout.HORIZONTAL);
+        topBar.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView back = new TextView(this);
+        back.setText("‹");
+        back.setTextColor(Color.rgb(42, 54, 74));
+        back.setTextSize(34);
+        back.setGravity(Gravity.CENTER);
+        back.setContentDescription("Geri");
+        back.setClickable(true);
+        back.setFocusable(true);
+        back.setOnClickListener(view -> finish());
+        topBar.addView(back, new LinearLayout.LayoutParams(dp(44), dp(48)));
+
+        LinearLayout titles = new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText(R.string.app_name);
-        title.setTextColor(Color.rgb(29, 25, 43));
-        title.setTextSize(25);
+        title.setText("Live Diagnostics");
+        title.setTextColor(Color.rgb(29, 35, 48));
+        title.setTextSize(23);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(title, matchWrap());
+        titles.addView(title, matchWrap());
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Sistem olayları ve işlem geçmişi");
+        subtitle.setTextColor(Color.rgb(105, 113, 128));
+        subtitle.setTextSize(12);
+        titles.addView(subtitle, matchWrap());
+        LinearLayout.LayoutParams titlesParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        titlesParams.setMarginStart(dp(8));
+        topBar.addView(titles, titlesParams);
+        root.addView(topBar, matchWrap());
 
         liveStateView = new TextView(this);
         liveStateView.setTextSize(14);
         liveStateView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        liveStateView.setPadding(0, dp(6), 0, dp(4));
+        liveStateView.setPadding(dp(52), dp(6), 0, dp(14));
         root.addView(liveStateView, matchWrap());
-
-        activationStateView = new TextView(this);
-        activationStateView.setTextSize(14);
-        activationStateView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        activationStateView.setPadding(0, dp(4), 0, dp(4));
-        root.addView(activationStateView, matchWrap());
-
-        LinearLayout activationControls = new LinearLayout(this);
-        activationControls.setOrientation(LinearLayout.HORIZONTAL);
-        addWeightedButton(activationControls,
-                actionButton("Hareketleri aç", view -> setGestureActivation(true)));
-        addWeightedButton(activationControls,
-                actionButton("Güvenli kapat", view -> setGestureActivation(false)));
-        root.addView(activationControls, matchWrap());
 
         summaryView = new TextView(this);
         summaryView.setTextColor(Color.rgb(73, 69, 79));
@@ -196,6 +206,11 @@ public final class DiagnosticsActivity extends Activity {
         Button button = new Button(this);
         button.setText(label);
         button.setAllCaps(false);
+        button.setTextSize(12);
+        button.setTextColor(Color.rgb(52, 64, 92));
+        button.setMinHeight(dp(44));
+        button.setBackground(rounded(
+                Color.WHITE, 12, Color.rgb(221, 226, 236), 1));
         button.setOnClickListener(listener);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -237,109 +252,6 @@ public final class DiagnosticsActivity extends Activity {
             liveStateView.setText("● HATA — diagnostics veritabanı okunamadı");
             liveStateView.setTextColor(Color.rgb(186, 26, 26));
         }
-    }
-
-    private void updateActivationState() {
-        if (activationStateView == null) {
-            return;
-        }
-        if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
-                != PackageManager.PERMISSION_GRANTED) {
-            activationStateView.setText("● YETKİ GEREKLİ — aktivasyon izni verilmemiş");
-            activationStateView.setTextColor(Color.rgb(186, 26, 26));
-            return;
-        }
-        boolean enabled = GestureActivation.isEnabled(this);
-        boolean systemUiReady = GestureActivation.isSystemUiReady(this);
-        boolean launcherReady = GestureActivation.isLauncherReady(this);
-        int forceFsg = GestureActivation.readGlobalInt(
-                this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, 0);
-        int navigationMode = readSecureInt(GestureActivation.KEY_NAVIGATION_MODE, -1);
-        String readiness = "SystemUI " + (systemUiReady ? "✓" : "…")
-                + " · Launcher " + (launcherReady ? "✓" : "…");
-        if (enabled && forceFsg == 1 && navigationMode == 2) {
-            activationStateView.setText("● AKTİF — hareketle gezinme açık · " + readiness);
-            activationStateView.setTextColor(Color.rgb(20, 125, 70));
-        } else if (enabled) {
-            activationStateView.setText("● BAŞLATILIYOR — sistem geçişi bekleniyor · " + readiness);
-            activationStateView.setTextColor(Color.rgb(151, 84, 0));
-        } else {
-            activationStateView.setText("○ KAPALI — " + readiness);
-            activationStateView.setTextColor(Color.rgb(73, 69, 79));
-        }
-    }
-
-    private void setGestureActivation(boolean enabled) {
-        if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
-                != PackageManager.PERMISSION_GRANTED) {
-            recordAppEvent(
-                    DiagnosticEvent.STATUS_FAILURE,
-                    "activation",
-                    "change-gesture-activation",
-                    "WRITE_SECURE_SETTINGS permission missing");
-            new AlertDialog.Builder(this)
-                    .setTitle("Aktivasyon izni gerekli")
-                    .setMessage("Uygulamanın sistem gezinme modunu güvenli biçimde değiştirme izni yok.")
-                    .setPositiveButton("Tamam", null)
-                    .show();
-            reloadEvents();
-            return;
-        }
-        if (enabled
-                && (!GestureActivation.isSystemUiReady(this)
-                || !GestureActivation.isLauncherReady(this))) {
-            recordAppEvent(
-                    DiagnosticEvent.STATUS_FAILURE,
-                    "activation",
-                    "enable-gesture-navigation",
-                    "Hooks not ready: systemUi=" + GestureActivation.isSystemUiReady(this)
-                            + ", launcher=" + GestureActivation.isLauncherReady(this));
-            new AlertDialog.Builder(this)
-                    .setTitle("Modül henüz hazır değil")
-                    .setMessage("SystemUI ve Xiaomi Launcher hook'ları hazır olmadan gezinme çubuğu gizlenmeyecek. SystemUI ile Launcher yeniden başlatılmalı.")
-                    .setPositiveButton("Tamam", null)
-                    .show();
-            reloadEvents();
-            return;
-        }
-
-        SharedPreferences preferences = createDeviceProtectedStorageContext()
-                .getSharedPreferences("gesture_activation", MODE_PRIVATE);
-        boolean wasEnabled = GestureActivation.isEnabled(this);
-        if (enabled && !wasEnabled) {
-            preferences.edit().putInt(
-                    "previous_force_fsg_nav_bar",
-                    GestureActivation.readGlobalInt(
-                            this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, 0)).apply();
-        }
-        int forceValue = enabled
-                ? 1 : preferences.getInt("previous_force_fsg_nav_bar", 0);
-        boolean activationWritten = GestureActivation.writeGlobalInt(
-                this, GestureActivation.KEY_ENABLED, enabled ? 1 : 0);
-        boolean forceWritten = GestureActivation.writeGlobalInt(
-                this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, forceValue);
-        String operation = enabled
-                ? "enable-gesture-navigation" : "disable-gesture-navigation";
-        if (activationWritten && forceWritten) {
-            recordAppEvent(
-                    DiagnosticEvent.STATUS_SUCCESS,
-                    "activation",
-                    operation,
-                    "enabled=" + enabled + " | force_fsg_nav_bar=" + forceValue);
-        } else {
-            recordAppEvent(
-                    DiagnosticEvent.STATUS_FAILURE,
-                    "activation",
-                    operation,
-                    "activationWritten=" + activationWritten
-                            + " | forceWritten=" + forceWritten);
-        }
-        renderedTotal = -1L;
-        updateActivationState();
-        reloadEvents();
-        liveHandler.postDelayed(
-                () -> captureAppSnapshot("activation-settled:" + enabled),
-                1500L);
     }
 
     private void captureAppSnapshot(String reason) {
@@ -440,14 +352,6 @@ public final class DiagnosticsActivity extends Activity {
         }
     }
 
-    private int readSecureInt(String key, int fallback) {
-        try {
-            return Settings.Secure.getInt(getContentResolver(), key, fallback);
-        } catch (Throwable throwable) {
-            return fallback;
-        }
-    }
-
     private LinearLayout.LayoutParams matchWrap() {
         return new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -456,6 +360,20 @@ public final class DiagnosticsActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private GradientDrawable rounded(
+            int color,
+            int radius,
+            int strokeColor,
+            int strokeWidth) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(dp(radius));
+        if (strokeWidth > 0) {
+            drawable.setStroke(dp(strokeWidth), strokeColor);
+        }
+        return drawable;
     }
 
     private final class EventAdapter extends BaseAdapter {
@@ -538,7 +456,9 @@ public final class DiagnosticsActivity extends Activity {
                 background = Color.rgb(232, 238, 255);
                 accent = Color.rgb(47, 67, 130);
             }
-            row.container.setBackgroundColor(background);
+            row.container.setBackground(rounded(background, 14,
+                    Color.argb(28, Color.red(accent), Color.green(accent), Color.blue(accent)),
+                    1));
             row.header.setTextColor(accent);
             row.header.setText(timeFormat.format(new Date(event.timestamp))
                     + "  " + event.status
