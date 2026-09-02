@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">Kích hoạt điều hướng cử chỉ HyperOS 3 và chẩn đoán trực tiếp.</string>
+    <string name="dashboard_subtitle">Trung tâm điều khiển điều hướng</string><string name="menu_cd">Menu</string><string name="menu_snapshot">Ảnh chụp hệ thống</string><string name="menu_about">Giới thiệu</string>
+    <string name="section_system_health">Tình trạng hệ thống</string><string name="section_gestures">Cử chỉ</string><string name="section_system_tools">Công cụ hệ thống</string>
+    <string name="gesture_back_title">Quay lại</string><string name="gesture_back_desc">Vuốt vào từ cạnh trái hoặc phải</string><string name="gesture_home_title">Màn hình chính</string><string name="gesture_home_desc">Vuốt nhanh lên từ cạnh dưới</string><string name="gesture_recents_title">Ứng dụng gần đây</string><string name="gesture_recents_desc">Vuốt lên và giữ trong chốc lát</string>
+    <string name="diagnostics_subtitle">Sự kiện hệ thống và lịch sử thao tác</string><string name="filter_all">Tất cả</string><string name="filter_success">Thành công</string><string name="filter_failure">Thất bại</string><string name="filter_info">Thông tin</string><string name="action_snapshot">Ảnh chụp</string><string name="action_export">Xuất báo cáo</string><string name="action_clear">Xóa bản ghi</string>
+    <string name="about_title">Giới thiệu</string><string name="about_version">Phiên bản %1$s</string><string name="about_description">Khôi phục trải nghiệm cử chỉ HyperOS gốc khi dùng launcher bên thứ ba, với chẩn đoán minh bạch và khôi phục an toàn.</string><string name="about_open_github">Mở GitHub</string>
+</resources>

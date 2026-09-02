@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">Активация жестовой навигации HyperOS 3 и диагностика в реальном времени.</string>
+    <string name="dashboard_subtitle">Центр управления навигацией</string><string name="menu_cd">Меню</string><string name="menu_snapshot">Снимок системы</string><string name="menu_about">О приложении</string>
+    <string name="section_system_health">Состояние системы</string><string name="section_gestures">Жесты</string><string name="section_system_tools">Системные инструменты</string>
+    <string name="gesture_back_title">Назад</string><string name="gesture_back_desc">Проведите внутрь от левого или правого края</string><string name="gesture_home_title">Главный экран</string><string name="gesture_home_desc">Быстро проведите вверх от нижнего края</string><string name="gesture_recents_title">Недавние приложения</string><string name="gesture_recents_desc">Проведите вверх и ненадолго задержите</string>
+    <string name="diagnostics_subtitle">Системные события и история операций</string><string name="filter_all">Все</string><string name="filter_success">Успешные</string><string name="filter_failure">Ошибки</string><string name="filter_info">Инфо</string><string name="action_snapshot">Снимок</string><string name="action_export">Экспорт отчёта</string><string name="action_clear">Очистить записи</string>
+    <string name="about_title">О приложении</string><string name="about_version">Версия %1$s</string><string name="about_description">Восстанавливает нативные жесты HyperOS со сторонним лаунчером, обеспечивая прозрачную диагностику и безопасное восстановление.</string><string name="about_open_github">Открыть GitHub</string>
+</resources>

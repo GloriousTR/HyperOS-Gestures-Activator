@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">HyperOS 3 제스처 탐색 활성화 및 실시간 진단 모듈입니다.</string>
+    <string name="dashboard_subtitle">탐색 제어 센터</string><string name="menu_cd">메뉴</string><string name="menu_snapshot">시스템 스냅샷</string><string name="menu_about">정보</string>
+    <string name="section_system_health">시스템 상태</string><string name="section_gestures">제스처</string><string name="section_system_tools">시스템 도구</string>
+    <string name="gesture_back_title">뒤로</string><string name="gesture_back_desc">왼쪽 또는 오른쪽 가장자리에서 안쪽으로 스와이프</string><string name="gesture_home_title">홈</string><string name="gesture_home_desc">아래쪽 가장자리에서 빠르게 위로 스와이프</string><string name="gesture_recents_title">최근 앱</string><string name="gesture_recents_desc">위로 스와이프한 뒤 잠시 유지</string>
+    <string name="diagnostics_subtitle">시스템 이벤트 및 작업 기록</string><string name="filter_all">전체</string><string name="filter_success">성공</string><string name="filter_failure">실패</string><string name="filter_info">정보</string><string name="action_snapshot">스냅샷</string><string name="action_export">보고서 내보내기</string><string name="action_clear">기록 지우기</string>
+    <string name="about_title">정보</string><string name="about_version">버전 %1$s</string><string name="about_description">타사 런처 사용 시 투명한 진단과 안전한 복구 기능으로 HyperOS 기본 제스처 환경을 복원합니다.</string><string name="about_open_github">GitHub 열기</string>
+</resources>

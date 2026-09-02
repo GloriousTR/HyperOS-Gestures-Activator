@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">تفعيل التنقل بالإيماءات في HyperOS 3 والتشخيص المباشر.</string>
+    <string name="dashboard_subtitle">مركز التحكم بالتنقل</string><string name="menu_cd">القائمة</string><string name="menu_snapshot">لقطة النظام</string><string name="menu_about">حول</string>
+    <string name="section_system_health">حالة النظام</string><string name="section_gestures">الإيماءات</string><string name="section_system_tools">أدوات النظام</string>
+    <string name="gesture_back_title">رجوع</string><string name="gesture_back_desc">اسحب للداخل من الحافة اليسرى أو اليمنى</string><string name="gesture_home_title">الشاشة الرئيسية</string><string name="gesture_home_desc">اسحب بسرعة لأعلى من الحافة السفلية</string><string name="gesture_recents_title">التطبيقات الأخيرة</string><string name="gesture_recents_desc">اسحب لأعلى مع الاستمرار قليلًا</string>
+    <string name="diagnostics_subtitle">أحداث النظام وسجل العمليات</string><string name="filter_all">الكل</string><string name="filter_success">ناجح</string><string name="filter_failure">فاشل</string><string name="filter_info">معلومات</string><string name="action_snapshot">لقطة</string><string name="action_export">تصدير التقرير</string><string name="action_clear">مسح السجلات</string>
+    <string name="about_title">حول</string><string name="about_version">الإصدار %1$s</string><string name="about_description">يعيد تجربة إيماءات HyperOS الأصلية مع مشغل خارجي، مع تشخيص واضح واستعادة آمنة.</string><string name="about_open_github">فتح GitHub</string>
+</resources>

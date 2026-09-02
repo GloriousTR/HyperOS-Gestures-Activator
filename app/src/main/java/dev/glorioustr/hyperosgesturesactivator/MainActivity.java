@@ -103,22 +103,22 @@ public final class MainActivity extends Activity {
         root.addView(space(24));
         root.addView(buildStatusCard(), matchWrap());
         root.addView(space(24));
-        root.addView(sectionTitle("Sistem sağlığı"), matchWrap());
+        root.addView(sectionTitle(getString(R.string.section_system_health)), matchWrap());
         root.addView(space(10));
         root.addView(buildHealthCard(), matchWrap());
         root.addView(space(24));
-        root.addView(sectionTitle("Hareketler"), matchWrap());
+        root.addView(sectionTitle(getString(R.string.section_gestures)), matchWrap());
         root.addView(space(10));
         root.addView(buildGestureCard(), matchWrap());
         root.addView(space(24));
-        root.addView(sectionTitle("Sistem araçları"), matchWrap());
+        root.addView(sectionTitle(getString(R.string.section_system_tools)), matchWrap());
         root.addView(space(10));
         root.addView(buildDiagnosticsMenu(), matchWrap());
         root.addView(space(22));
 
         TextView footer = text(
-                "v" + BuildConfig.VERSION_NAME + "  •  "
-                        + Build.MANUFACTURER + " " + Build.MODEL,
+                getString(R.string.footer_version_device,
+                        BuildConfig.VERSION_NAME, Build.MANUFACTURER, Build.MODEL),
                 12,
                 Color.rgb(105, 113, 128),
                 Typeface.NORMAL);
@@ -135,9 +135,9 @@ public final class MainActivity extends Activity {
 
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
-        TextView title = text("HyperOS Gestures", 25,
+        TextView title = text(getString(R.string.dashboard_title), 25,
                 Color.rgb(22, 30, 45), Typeface.BOLD);
-        TextView subtitle = text("Navigation Control Center", 13,
+        TextView subtitle = text(getString(R.string.dashboard_subtitle), 13,
                 Color.rgb(105, 113, 128), Typeface.NORMAL);
         subtitle.setPadding(0, dp(2), 0, 0);
         titles.addView(title, matchWrap());
@@ -147,7 +147,7 @@ public final class MainActivity extends Activity {
 
         TextView menu = text("⋮", 28, Color.rgb(42, 54, 74), Typeface.BOLD);
         menu.setGravity(Gravity.CENTER);
-        menu.setContentDescription("Menü");
+        menu.setContentDescription(getString(R.string.menu_cd));
         menu.setClickable(true);
         menu.setFocusable(true);
         menu.setBackground(rounded(Color.WHITE, 16, Color.rgb(224, 229, 238), 1));
@@ -162,16 +162,17 @@ public final class MainActivity extends Activity {
         statusCard.setPadding(dp(20), dp(20), dp(20), dp(20));
         statusCard.setElevation(dp(2));
 
-        statusBadge = text("DURUM", 11, Color.rgb(35, 85, 62), Typeface.BOLD);
+        statusBadge = text(getString(R.string.status_label), 11,
+                Color.rgb(35, 85, 62), Typeface.BOLD);
         statusBadge.setLetterSpacing(0.12f);
         statusCard.addView(statusBadge, matchWrap());
 
-        statusTitle = text("Kontrol ediliyor…", 26,
+        statusTitle = text(getString(R.string.status_checking_title), 26,
                 Color.rgb(18, 46, 32), Typeface.BOLD);
         statusTitle.setPadding(0, dp(8), 0, 0);
         statusCard.addView(statusTitle, matchWrap());
 
-        statusDetail = text("Sistem durumu okunuyor.", 14,
+        statusDetail = text(getString(R.string.status_checking_desc), 14,
                 Color.rgb(62, 82, 70), Typeface.NORMAL);
         statusDetail.setPadding(0, dp(6), 0, dp(18));
         statusCard.addView(statusDetail, matchWrap());
@@ -186,7 +187,7 @@ public final class MainActivity extends Activity {
         statusCard.addView(primaryButton, matchWrap());
 
         TextView safety = text(
-                "Güvenli kapatma, önceki gezinme ayarını otomatik geri yükler.",
+                getString(R.string.safety_hint),
                 11,
                 Color.rgb(84, 101, 91),
                 Typeface.NORMAL);
@@ -198,32 +199,38 @@ public final class MainActivity extends Activity {
 
     private View buildHealthCard() {
         LinearLayout card = card();
-        systemUiHealth = addHealthRow(card, "SystemUI", "Kontrol ediliyor…", false);
-        launcherHealth = addHealthRow(card, "Xiaomi Launcher motoru", "Kontrol ediliyor…", true);
-        navigationHealth = addHealthRow(card, "Gezinme modu", "Kontrol ediliyor…", true);
-        defaultHomeView = addHealthRow(card, "Varsayılan ana ekran", "Kontrol ediliyor…", true);
+        systemUiHealth = addHealthRow(card, getString(R.string.health_systemui),
+                getString(R.string.status_checking_title), false);
+        launcherHealth = addHealthRow(card, getString(R.string.health_launcher),
+                getString(R.string.status_checking_title), true);
+        navigationHealth = addHealthRow(card, getString(R.string.health_navigation),
+                getString(R.string.status_checking_title), true);
+        defaultHomeView = addHealthRow(card, getString(R.string.health_default_home),
+                getString(R.string.status_checking_title), true);
         return card;
     }
 
     private View buildGestureCard() {
         LinearLayout card = card();
-        addGestureRow(card, "‹", "Geri", "Sol veya sağ kenardan içeri kaydır", false);
-        addGestureRow(card, "⌃", "Ana ekran", "Alt kenardan hızlıca yukarı kaydır", true);
-        addGestureRow(card, "▤", "Son uygulamalar", "Yukarı kaydır ve kısa süre tut", true);
+        addGestureRow(card, "‹", getString(R.string.gesture_back_title),
+                getString(R.string.gesture_back_desc), false);
+        addGestureRow(card, "⌃", getString(R.string.gesture_home_title),
+                getString(R.string.gesture_home_desc), true);
+        addGestureRow(card, "▤", getString(R.string.gesture_recents_title),
+                getString(R.string.gesture_recents_desc), true);
         return card;
     }
 
     private View buildDiagnosticsMenu() {
         LinearLayout card = card();
-        card.setClickable(true);
-        card.setFocusable(true);
-        card.setContentDescription("Live Diagnostics ekranını aç");
-        card.setOnClickListener(view -> openDiagnostics());
-
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(10), 0, dp(10));
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setContentDescription(getString(R.string.diagnostics_open_cd));
+        row.setOnClickListener(view -> openDiagnostics());
 
         TextView icon = text("◉", 22, Color.rgb(71, 83, 160), Typeface.BOLD);
         icon.setGravity(Gravity.CENTER);
@@ -237,9 +244,9 @@ public final class MainActivity extends Activity {
         copyParams.setMarginStart(dp(14));
         row.addView(copy, copyParams);
 
-        copy.addView(text("Live Diagnostics", 16,
+        copy.addView(text(getString(R.string.menu_live_diagnostics), 16,
                 Color.rgb(26, 35, 52), Typeface.BOLD), matchWrap());
-        diagnosticsSummary = text("Olay özeti yükleniyor…", 12,
+        diagnosticsSummary = text(getString(R.string.diagnostics_loading), 12,
                 Color.rgb(105, 113, 128), Typeface.NORMAL);
         diagnosticsSummary.setPadding(0, dp(3), 0, 0);
         copy.addView(diagnosticsSummary, matchWrap());
@@ -249,6 +256,34 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         card.addView(row, matchWrap());
+
+        card.addView(divider(), new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+        LinearLayout aboutRow = new LinearLayout(this);
+        aboutRow.setOrientation(LinearLayout.HORIZONTAL);
+        aboutRow.setGravity(Gravity.CENTER_VERTICAL);
+        aboutRow.setPadding(0, dp(10), 0, dp(10));
+        aboutRow.setClickable(true);
+        aboutRow.setFocusable(true);
+        aboutRow.setOnClickListener(view -> openAbout());
+        TextView aboutIcon = text("ⓘ", 20, Color.rgb(92, 64, 150), Typeface.BOLD);
+        aboutIcon.setGravity(Gravity.CENTER);
+        aboutIcon.setBackground(rounded(
+                Color.rgb(245, 238, 255), 14, Color.TRANSPARENT, 0));
+        aboutRow.addView(aboutIcon, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        LinearLayout aboutCopy = new LinearLayout(this);
+        aboutCopy.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams aboutCopyParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        aboutCopyParams.setMarginStart(dp(14));
+        aboutRow.addView(aboutCopy, aboutCopyParams);
+        aboutCopy.addView(text(getString(R.string.menu_about), 16,
+                Color.rgb(26, 35, 52), Typeface.BOLD), matchWrap());
+        aboutCopy.addView(text(getString(R.string.module_description), 12,
+                Color.rgb(105, 113, 128), Typeface.NORMAL), matchWrap());
+        aboutRow.addView(text("›", 28,
+                Color.rgb(105, 113, 128), Typeface.NORMAL));
+        card.addView(aboutRow, matchWrap());
         return card;
     }
 
@@ -267,10 +302,12 @@ public final class MainActivity extends Activity {
         row.setPadding(0, dp(13), 0, dp(13));
         TextView labelView = text(label, 14,
                 Color.rgb(54, 64, 82), Typeface.NORMAL);
+        labelView.setPaddingRelative(0, 0, dp(8), 0);
         row.addView(labelView, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView valueView = text(value, 13,
                 Color.rgb(105, 113, 128), Typeface.BOLD);
+        valueView.setPaddingRelative(dp(8), 0, 0, 0);
         valueView.setGravity(Gravity.END);
         row.addView(valueView, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -314,8 +351,9 @@ public final class MainActivity extends Activity {
 
     private void showMainMenu(View anchor) {
         PopupMenu menu = new PopupMenu(this, anchor);
-        menu.getMenu().add(0, 1, 0, "Live Diagnostics");
-        menu.getMenu().add(0, 2, 1, "Anlık sistem kaydı");
+        menu.getMenu().add(0, 1, 0, getString(R.string.menu_live_diagnostics));
+        menu.getMenu().add(0, 2, 1, getString(R.string.menu_snapshot));
+        menu.getMenu().add(0, 3, 2, getString(R.string.menu_about));
         menu.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) {
                 openDiagnostics();
@@ -323,7 +361,11 @@ public final class MainActivity extends Activity {
             }
             if (item.getItemId() == 2) {
                 captureSnapshot("dashboard-menu");
-                Toast.makeText(this, "Sistem durumu kaydedildi", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.toast_snapshot_saved, Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            if (item.getItemId() == 3) {
+                openAbout();
                 return true;
             }
             return false;
@@ -333,6 +375,10 @@ public final class MainActivity extends Activity {
 
     private void openDiagnostics() {
         startActivity(new Intent(this, DiagnosticsActivity.class));
+    }
+
+    private void openAbout() {
+        startActivity(new Intent(this, AboutActivity.class));
     }
 
     private void updateDashboard() {
@@ -348,64 +394,68 @@ public final class MainActivity extends Activity {
 
         if (!permissionGranted) {
             applyStatus(
-                    "YETKİ GEREKLİ",
-                    "Aktivasyon izni verilmemiş",
-                    "Sistem gezinme modunu değiştirmek için gerekli izin eksik.",
+                    getString(R.string.status_permission_label),
+                    getString(R.string.status_permission_title),
+                    getString(R.string.status_permission_desc),
                     Color.rgb(255, 239, 237),
                     Color.rgb(145, 28, 28));
-            primaryButton.setText("İzin durumunu kontrol et");
+            primaryButton.setText(R.string.action_check_permission);
             primaryButton.setTextColor(Color.WHITE);
             primaryButton.setBackground(rounded(
                     Color.rgb(174, 39, 39), 14, Color.TRANSPARENT, 0));
         } else if (fullyActive) {
             applyStatus(
-                    "AKTİF",
-                    "Hareketle gezinme açık",
-                    "HyperOS hareket motoru Smart Launcher ile kullanıma hazır.",
+                    getString(R.string.status_active_label),
+                    getString(R.string.status_active_title),
+                    getString(R.string.status_active_desc),
                     Color.rgb(232, 247, 239),
                     Color.rgb(20, 105, 60));
-            primaryButton.setText("Güvenli şekilde kapat");
+            primaryButton.setText(R.string.action_safe_disable);
             primaryButton.setTextColor(Color.rgb(136, 31, 31));
             primaryButton.setBackground(rounded(
                     Color.rgb(255, 246, 245), 14, Color.rgb(231, 188, 184), 1));
         } else if (enabled) {
             applyStatus(
-                    "BAŞLATILIYOR",
-                    "Sistem geçişi bekleniyor",
-                    "SystemUI ve Launcher gezinme modunu hazırlıyor.",
+                    getString(R.string.status_starting_label),
+                    getString(R.string.status_starting_title),
+                    getString(R.string.status_starting_desc),
                     Color.rgb(255, 246, 226),
                     Color.rgb(137, 81, 0));
-            primaryButton.setText("Güvenli şekilde kapat");
+            primaryButton.setText(R.string.action_safe_disable);
             primaryButton.setTextColor(Color.rgb(120, 67, 0));
             primaryButton.setBackground(rounded(
                     Color.rgb(255, 250, 240), 14, Color.rgb(231, 205, 149), 1));
         } else {
             applyStatus(
-                    "KAPALI",
-                    "Hareketle gezinme kapalı",
-                    "Hazır olduğunda tek dokunuşla güvenle etkinleştirebilirsin.",
+                    getString(R.string.status_off_label),
+                    getString(R.string.status_off_title),
+                    getString(R.string.status_off_desc),
                     Color.WHITE,
                     Color.rgb(50, 61, 80));
-            primaryButton.setText("Hareketleri etkinleştir");
+            primaryButton.setText(R.string.action_enable_gestures);
             primaryButton.setTextColor(Color.WHITE);
             primaryButton.setBackground(rounded(
                     Color.rgb(68, 82, 160), 14, Color.TRANSPARENT, 0));
         }
 
-        bindHealth(systemUiHealth, systemUiReady, "Hazır", "Bekleniyor");
-        bindHealth(launcherHealth, launcherReady, "Hazır", "Bekleniyor");
+        bindHealth(systemUiHealth, systemUiReady,
+                getString(R.string.health_ready), getString(R.string.health_waiting));
+        bindHealth(launcherHealth, launcherReady,
+                getString(R.string.health_ready), getString(R.string.health_waiting));
         boolean navigationReady = forceFsg == 1 && navigationMode == 2;
         bindHealth(navigationHealth, navigationReady,
-                "Gesture (2)", enabled ? "Geçişte" : "Kapalı");
+                getString(R.string.health_gesture_mode), enabled
+                        ? getString(R.string.health_transitioning)
+                        : getString(R.string.health_off));
         defaultHomeView.setText(shortHome(resolveDefaultHome()));
         defaultHomeView.setTextColor(Color.rgb(62, 72, 90));
 
         try {
             DiagnosticDatabase.Counts counts = database.counts();
-            diagnosticsSummary.setText(counts.total + " olay  •  "
-                    + counts.success + " başarılı  •  " + counts.failure + " hata");
+            diagnosticsSummary.setText(getString(R.string.diagnostics_summary,
+                    counts.total, counts.success, counts.failure));
         } catch (Throwable throwable) {
-            diagnosticsSummary.setText("Olay özeti okunamadı");
+            diagnosticsSummary.setText(R.string.diagnostics_summary_error);
         }
     }
 
@@ -445,9 +495,9 @@ public final class MainActivity extends Activity {
                     "change-gesture-activation",
                     "WRITE_SECURE_SETTINGS permission missing");
             new AlertDialog.Builder(this)
-                    .setTitle("Aktivasyon izni gerekli")
-                    .setMessage("Uygulamanın sistem gezinme modunu güvenli biçimde değiştirme izni yok.")
-                    .setPositiveButton("Tamam", null)
+                    .setTitle(R.string.dialog_permission_title)
+                    .setMessage(R.string.dialog_permission_message)
+                    .setPositiveButton(R.string.action_ok, null)
                     .show();
             return;
         }
@@ -461,9 +511,9 @@ public final class MainActivity extends Activity {
                     "Hooks not ready: systemUi=" + GestureActivation.isSystemUiReady(this)
                             + ", launcher=" + GestureActivation.isLauncherReady(this));
             new AlertDialog.Builder(this)
-                    .setTitle("Modül henüz hazır değil")
-                    .setMessage("SystemUI ve Xiaomi Launcher hazır olmadan gezinme çubuğu gizlenmeyecek.")
-                    .setPositiveButton("Tamam", null)
+                    .setTitle(R.string.dialog_module_title)
+                    .setMessage(R.string.dialog_module_message)
+                    .setPositiveButton(R.string.action_ok, null)
                     .show();
             return;
         }
@@ -553,13 +603,13 @@ public final class MainActivity extends Activity {
             ResolveInfo resolved = getPackageManager().resolveActivity(
                     intent, PackageManager.MATCH_DEFAULT_ONLY);
             if (resolved == null || resolved.activityInfo == null) {
-                return "Çözümlenemedi";
+                return getString(R.string.home_unresolved);
             }
             return new ComponentName(
                     resolved.activityInfo.packageName,
                     resolved.activityInfo.name).flattenToShortString();
         } catch (Throwable throwable) {
-            return "Okunamadı";
+            return getString(R.string.home_unavailable);
         }
     }
 

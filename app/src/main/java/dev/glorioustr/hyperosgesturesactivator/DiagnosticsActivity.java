@@ -77,7 +77,7 @@ public final class DiagnosticsActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        liveStateView.setText("● CANLI — olaylar izleniyor");
+        liveStateView.setText(R.string.live_monitoring);
         liveStateView.setTextColor(Color.rgb(20, 125, 70));
         liveHandler.removeCallbacks(liveRefresh);
         liveHandler.post(liveRefresh);
@@ -86,7 +86,7 @@ public final class DiagnosticsActivity extends Activity {
     @Override
     protected void onStop() {
         liveHandler.removeCallbacks(liveRefresh);
-        liveStateView.setText("● DURAKLATILDI");
+        liveStateView.setText(R.string.live_paused);
         liveStateView.setTextColor(Color.rgb(121, 116, 126));
         super.onStop();
     }
@@ -114,7 +114,7 @@ public final class DiagnosticsActivity extends Activity {
         back.setTextColor(Color.rgb(42, 54, 74));
         back.setTextSize(34);
         back.setGravity(Gravity.CENTER);
-        back.setContentDescription("Geri");
+        back.setContentDescription(getString(R.string.back_cd));
         back.setClickable(true);
         back.setFocusable(true);
         back.setOnClickListener(view -> finish());
@@ -123,13 +123,13 @@ public final class DiagnosticsActivity extends Activity {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText("Live Diagnostics");
+        title.setText(R.string.diagnostics_title);
         title.setTextColor(Color.rgb(29, 35, 48));
         title.setTextSize(23);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         titles.addView(title, matchWrap());
         TextView subtitle = new TextView(this);
-        subtitle.setText("Sistem olayları ve işlem geçmişi");
+        subtitle.setText(R.string.diagnostics_subtitle);
         subtitle.setTextColor(Color.rgb(105, 113, 128));
         subtitle.setTextSize(12);
         titles.addView(subtitle, matchWrap());
@@ -152,7 +152,8 @@ public final class DiagnosticsActivity extends Activity {
         root.addView(summaryView, matchWrap());
 
         filterView = new TextView(this);
-        filterView.setText("Gösterilen: Tümü (en yeni 1000 olay)");
+        filterView.setText(getString(
+                R.string.diagnostics_showing, getString(R.string.filter_all)));
         filterView.setTextColor(Color.rgb(73, 69, 79));
         filterView.setTextSize(12);
         root.addView(filterView, matchWrap());
@@ -163,21 +164,28 @@ public final class DiagnosticsActivity extends Activity {
 
         LinearLayout filters = new LinearLayout(this);
         filters.setOrientation(LinearLayout.HORIZONTAL);
-        addWeightedButton(filters, filterButton("Tümü", null));
-        addWeightedButton(filters, filterButton("Başarılı", DiagnosticEvent.STATUS_SUCCESS));
-        addWeightedButton(filters, filterButton("Başarısız", DiagnosticEvent.STATUS_FAILURE));
-        addWeightedButton(filters, filterButton("Bilgi", DiagnosticEvent.STATUS_INFO));
+        addWeightedButton(filters, filterButton(
+                getString(R.string.filter_all), null));
+        addWeightedButton(filters, filterButton(
+                getString(R.string.filter_success), DiagnosticEvent.STATUS_SUCCESS));
+        addWeightedButton(filters, filterButton(
+                getString(R.string.filter_failure), DiagnosticEvent.STATUS_FAILURE));
+        addWeightedButton(filters, filterButton(
+                getString(R.string.filter_info), DiagnosticEvent.STATUS_INFO));
         controls.addView(filters, matchWrap());
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         addWeightedButton(actions,
-                actionButton("Anlık kayıt", view -> captureAppSnapshot("manual-refresh")));
+                actionButton(getString(R.string.action_snapshot),
+                        view -> captureAppSnapshot("manual-refresh")));
         addWeightedButton(actions,
-                actionButton("Raporu dışa aktar", view -> chooseReportDestination()));
+                actionButton(getString(R.string.action_export),
+                        view -> chooseReportDestination()));
         controls.addView(actions, matchWrap());
 
-        Button clearButton = actionButton("Kayıtları temizle", view -> confirmClear());
+        Button clearButton = actionButton(
+                getString(R.string.action_clear), view -> confirmClear());
         clearButton.setTextColor(Color.rgb(160, 48, 48));
         controls.addView(clearButton, matchWrap());
         root.addView(controls, matchWrap());
@@ -194,7 +202,7 @@ public final class DiagnosticsActivity extends Activity {
                 1f));
 
         TextView footer = new TextView(this);
-        footer.setText("Tüm olaylar kalıcı veritabanında tutulur. Ekran performans için son 1000 kaydı gösterir.");
+        footer.setText(R.string.diagnostics_footer);
         footer.setTextColor(Color.rgb(121, 116, 126));
         footer.setTextSize(11);
         root.addView(footer, matchWrap());
@@ -216,7 +224,7 @@ public final class DiagnosticsActivity extends Activity {
     private Button filterButton(String label, String filter) {
         return actionButton(label, view -> {
             activeFilter = filter;
-            filterView.setText("Gösterilen: " + label + " (en yeni 1000 olay)");
+            filterView.setText(getString(R.string.diagnostics_showing, label));
             recordAppEvent(
                     DiagnosticEvent.STATUS_SUCCESS,
                     "ui",
@@ -264,16 +272,14 @@ public final class DiagnosticsActivity extends Activity {
                 return;
             }
             List<DiagnosticEvent> events = database.latest(activeFilter);
-            summaryView.setText("Toplam " + counts.total
-                    + "   ✓ " + counts.success
-                    + "   ✕ " + counts.failure
-                    + "   ℹ " + counts.info);
+            summaryView.setText(getString(R.string.diagnostics_count_summary,
+                    counts.total, counts.success, counts.failure, counts.info));
             eventAdapter.replace(events);
             eventList.setSelection(0);
             renderedTotal = counts.total;
             renderedFilter = activeFilter;
         } catch (Throwable throwable) {
-            liveStateView.setText("● HATA — diagnostics veritabanı okunamadı");
+            liveStateView.setText(R.string.live_database_error);
             liveStateView.setTextColor(Color.rgb(186, 26, 26));
         }
     }
@@ -329,7 +335,7 @@ public final class DiagnosticsActivity extends Activity {
                     "choose-diagnostics-report-destination",
                     throwable.getClass().getName() + ": " + throwable.getMessage());
             Toast.makeText(this,
-                    "Rapor kaydetme ekranı açılamadı",
+                    getString(R.string.export_picker_failed),
                     Toast.LENGTH_LONG).show();
             renderedTotal = -1L;
             reloadEvents();
@@ -337,7 +343,7 @@ public final class DiagnosticsActivity extends Activity {
     }
 
     private void exportReport(Uri destination) {
-        liveStateView.setText("● RAPOR HAZIRLANIYOR");
+        liveStateView.setText(R.string.live_exporting);
         liveStateView.setTextColor(Color.rgb(71, 83, 160));
         new Thread(() -> {
             try (OutputStream output = getContentResolver().openOutputStream(
@@ -359,10 +365,10 @@ public final class DiagnosticsActivity extends Activity {
                 runOnUiThread(() -> {
                     renderedTotal = -1L;
                     reloadEvents();
-                    liveStateView.setText("● CANLI — rapor dışa aktarıldı");
+                    liveStateView.setText(R.string.live_exported);
                     liveStateView.setTextColor(Color.rgb(20, 125, 70));
                     Toast.makeText(this,
-                            "Tanılama raporu kaydedildi",
+                            getString(R.string.export_saved_toast),
                             Toast.LENGTH_LONG).show();
                 });
             } catch (Throwable throwable) {
@@ -374,10 +380,10 @@ public final class DiagnosticsActivity extends Activity {
                 runOnUiThread(() -> {
                     renderedTotal = -1L;
                     reloadEvents();
-                    liveStateView.setText("● HATA — rapor kaydedilemedi");
+                    liveStateView.setText(R.string.live_export_failed);
                     liveStateView.setTextColor(Color.rgb(186, 26, 26));
                     Toast.makeText(this,
-                            "Tanılama raporu kaydedilemedi",
+                            getString(R.string.export_failed_toast),
                             Toast.LENGTH_LONG).show();
                 });
             }
@@ -419,10 +425,10 @@ public final class DiagnosticsActivity extends Activity {
 
     private void confirmClear() {
         new AlertDialog.Builder(this)
-                .setTitle("Diagnostics kayıtları silinsin mi?")
-                .setMessage("Bu işlem cihazdaki önceki başarı, hata ve bilgi olaylarını kalıcı olarak siler.")
-                .setNegativeButton("Vazgeç", null)
-                .setPositiveButton("Sil", (dialog, which) -> {
+                .setTitle(R.string.clear_title)
+                .setMessage(R.string.clear_message)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_delete, (dialog, which) -> {
                     database.clear();
                     renderedTotal = -1L;
                     recordAppEvent(

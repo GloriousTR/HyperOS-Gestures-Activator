@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">HyperOS 3 手势导航激活与实时诊断模块。</string>
+    <string name="dashboard_subtitle">导航控制中心</string><string name="menu_cd">菜单</string><string name="menu_snapshot">系统快照</string><string name="menu_about">关于</string>
+    <string name="section_system_health">系统状态</string><string name="section_gestures">手势</string><string name="section_system_tools">系统工具</string>
+    <string name="gesture_back_title">返回</string><string name="gesture_back_desc">从左侧或右侧边缘向内滑动</string><string name="gesture_home_title">主屏幕</string><string name="gesture_home_desc">从底部边缘快速上滑</string><string name="gesture_recents_title">最近应用</string><string name="gesture_recents_desc">上滑并短暂停留</string>
+    <string name="diagnostics_subtitle">系统事件与操作历史</string><string name="filter_all">全部</string><string name="filter_success">成功</string><string name="filter_failure">失败</string><string name="filter_info">信息</string><string name="action_snapshot">快照</string><string name="action_export">导出报告</string><string name="action_clear">清除记录</string>
+    <string name="about_title">关于</string><string name="about_version">版本 %1$s</string><string name="about_description">使用第三方启动器时恢复 HyperOS 原生手势体验，并提供透明诊断和安全恢复。</string><string name="about_open_github">打开 GitHub</string>
+</resources>

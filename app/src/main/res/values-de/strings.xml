@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">Aktivierung der HyperOS-3-Gestennavigation und Live-Diagnose.</string>
+    <string name="dashboard_subtitle">Navigations-Kontrollzentrum</string><string name="menu_cd">Menü</string><string name="menu_snapshot">Systemaufnahme</string><string name="menu_about">Über</string>
+    <string name="section_system_health">Systemstatus</string><string name="section_gestures">Gesten</string><string name="section_system_tools">Systemwerkzeuge</string>
+    <string name="gesture_back_title">Zurück</string><string name="gesture_back_desc">Vom linken oder rechten Rand nach innen wischen</string><string name="gesture_home_title">Startseite</string><string name="gesture_home_desc">Vom unteren Rand schnell nach oben wischen</string><string name="gesture_recents_title">Letzte Apps</string><string name="gesture_recents_desc">Nach oben wischen und kurz halten</string>
+    <string name="diagnostics_subtitle">Systemereignisse und Vorgangsverlauf</string><string name="filter_all">Alle</string><string name="filter_success">Erfolgreich</string><string name="filter_failure">Fehlgeschlagen</string><string name="filter_info">Info</string><string name="action_snapshot">Aufnahme</string><string name="action_export">Bericht exportieren</string><string name="action_clear">Einträge löschen</string>
+    <string name="about_title">Über</string><string name="about_version">Version %1$s</string><string name="about_description">Stellt native HyperOS-Gesten bei Verwendung eines Drittanbieter-Launchers wieder her – mit transparenter Diagnose und sicherer Wiederherstellung.</string><string name="about_open_github">GitHub öffnen</string>
+</resources>

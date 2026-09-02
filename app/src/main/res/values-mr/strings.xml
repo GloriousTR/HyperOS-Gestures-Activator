@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">HyperOS 3 जेस्चर नेव्हिगेशन सक्रियकरण आणि थेट निदान.</string>
+    <string name="dashboard_subtitle">नेव्हिगेशन नियंत्रण केंद्र</string><string name="menu_cd">मेनू</string><string name="menu_snapshot">सिस्टम स्नॅपशॉट</string><string name="menu_about">माहिती</string>
+    <string name="section_system_health">सिस्टम स्थिती</string><string name="section_gestures">जेस्चर</string><string name="section_system_tools">सिस्टम साधने</string>
+    <string name="gesture_back_title">मागे</string><string name="gesture_back_desc">डाव्या किंवा उजव्या कडेपासून आत स्वाइप करा</string><string name="gesture_home_title">होम</string><string name="gesture_home_desc">खालच्या कडेपासून पटकन वर स्वाइप करा</string><string name="gesture_recents_title">अलीकडील अॅप्स</string><string name="gesture_recents_desc">वर स्वाइप करून थोडा वेळ धरा</string>
+    <string name="diagnostics_subtitle">सिस्टम घटना आणि कार्य इतिहास</string><string name="filter_all">सर्व</string><string name="filter_success">यशस्वी</string><string name="filter_failure">अयशस्वी</string><string name="filter_info">माहिती</string><string name="action_snapshot">स्नॅपशॉट</string><string name="action_export">अहवाल निर्यात करा</string><string name="action_clear">नोंदी साफ करा</string>
+    <string name="about_title">माहिती</string><string name="about_version">आवृत्ती %1$s</string><string name="about_description">तृतीय-पक्ष लाँचरसह मूळ HyperOS जेस्चर, पारदर्शक निदान आणि सुरक्षित पुनर्स्थापना देते.</string><string name="about_open_github">GitHub उघडा</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">HyperOS 3 జెస్చర్ నావిగేషన్ యాక్టివేషన్ మరియు లైవ్ డయాగ్నస్టిక్స్.</string>
+    <string name="dashboard_subtitle">నావిగేషన్ నియంత్రణ కేంద్రం</string><string name="menu_cd">మెను</string><string name="menu_snapshot">సిస్టమ్ స్నాప్‌షాట్</string><string name="menu_about">గురించి</string>
+    <string name="section_system_health">సిస్టమ్ స్థితి</string><string name="section_gestures">జెస్చర్లు</string><string name="section_system_tools">సిస్టమ్ టూల్స్</string>
+    <string name="gesture_back_title">వెనుకకు</string><string name="gesture_back_desc">ఎడమ లేదా కుడి అంచు నుంచి లోపలికి స్వైప్ చేయండి</string><string name="gesture_home_title">హోమ్</string><string name="gesture_home_desc">దిగువ అంచు నుంచి వేగంగా పైకి స్వైప్ చేయండి</string><string name="gesture_recents_title">ఇటీవలి యాప్‌లు</string><string name="gesture_recents_desc">పైకి స్వైప్ చేసి కొద్దిసేపు పట్టుకోండి</string>
+    <string name="diagnostics_subtitle">సిస్టమ్ ఈవెంట్లు మరియు ఆపరేషన్ చరిత్ర</string><string name="filter_all">అన్నీ</string><string name="filter_success">విజయం</string><string name="filter_failure">విఫలం</string><string name="filter_info">సమాచారం</string><string name="action_snapshot">స్నాప్‌షాట్</string><string name="action_export">రిపోర్ట్ ఎగుమతి</string><string name="action_clear">రికార్డులు తొలగించు</string>
+    <string name="about_title">గురించి</string><string name="about_version">వెర్షన్ %1$s</string><string name="about_description">మూడవ పక్ష లాంచర్‌తో స్థానిక HyperOS జెస్చర్లు, పారదర్శక డయాగ్నస్టిక్స్ మరియు సురక్షిత పునరుద్ధరణను అందిస్తుంది.</string><string name="about_open_github">GitHub తెరవండి</string>
+</resources>

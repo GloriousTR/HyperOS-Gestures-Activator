@@ -1,0 +1,8 @@
+<resources>
+    <string name="module_description">HyperOS 3 சைகை வழிசெலுத்தல் செயலாக்கம் மற்றும் நேரடி கண்டறிதல்.</string>
+    <string name="dashboard_subtitle">வழிசெலுத்தல் கட்டுப்பாட்டு மையம்</string><string name="menu_cd">மெனு</string><string name="menu_snapshot">கணினி நிலைப்படம்</string><string name="menu_about">பற்றி</string>
+    <string name="section_system_health">கணினி நிலை</string><string name="section_gestures">சைகைகள்</string><string name="section_system_tools">கணினி கருவிகள்</string>
+    <string name="gesture_back_title">பின்செல்</string><string name="gesture_back_desc">இடது அல்லது வலது ஓரத்திலிருந்து உள்ளே ஸ்வைப் செய்யவும்</string><string name="gesture_home_title">முகப்பு</string><string name="gesture_home_desc">கீழ் ஓரத்திலிருந்து விரைவாக மேலே ஸ்வைப் செய்யவும்</string><string name="gesture_recents_title">சமீபத்திய செயலிகள்</string><string name="gesture_recents_desc">மேலே ஸ்வைப் செய்து சிறிது நேரம் பிடிக்கவும்</string>
+    <string name="diagnostics_subtitle">கணினி நிகழ்வுகள் மற்றும் செயல்பாட்டு வரலாறு</string><string name="filter_all">அனைத்தும்</string><string name="filter_success">வெற்றி</string><string name="filter_failure">தோல்வி</string><string name="filter_info">தகவல்</string><string name="action_snapshot">நிலைப்படம்</string><string name="action_export">அறிக்கையை ஏற்றுமதி செய்</string><string name="action_clear">பதிவுகளை அழி</string>
+    <string name="about_title">பற்றி</string><string name="about_version">பதிப்பு %1$s</string><string name="about_description">மூன்றாம் தரப்பு லாஞ்சருடன் இயல்பான HyperOS சைகைகள், வெளிப்படையான கண்டறிதல் மற்றும் பாதுகாப்பான மீட்பை வழங்குகிறது.</string><string name="about_open_github">GitHub திற</string>
+</resources>
