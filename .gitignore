@@ -13,3 +13,4 @@ keystore/
 app/build/
 logs/
 artifacts/
+.device-probe/

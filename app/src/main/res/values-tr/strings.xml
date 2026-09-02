@@ -43,6 +43,8 @@
     <string name="gesture_home_desc">Alt kenardan hızlıca yukarı kaydır</string>
     <string name="gesture_recents_title">Son uygulamalar</string>
     <string name="gesture_recents_desc">Yukarı kaydır ve kısa süre tut</string>
+    <string name="gesture_quick_switch_title">Uygulamalar arasında geçiş</string>
+    <string name="gesture_quick_switch_desc">Alt kenar boyunca sola veya sağa kaydır</string>
     <string name="diagnostics_open_cd">Canlı Tanılama ekranını aç</string>
     <string name="diagnostics_loading">Olay özeti yükleniyor…</string>
     <string name="diagnostics_summary">%1$d olay  •  %2$d başarılı  •  %3$d hata</string>
@@ -84,7 +86,7 @@
     <string name="about_version">Sürüm %1$s</string>
     <string name="about_description">Üçüncü taraf bir ana ekran kullanırken yerel HyperOS hareket deneyimini şeffaf sistem tanılaması ve güvenli geri dönüş yolu ile yeniden etkinleştirir.</string>
     <string name="about_capabilities_title">Yerel hareketler için üretildi</string>
-    <string name="about_capabilities_desc">Geri, Ana Ekran ve Son Uygulamalar; HyperOS SystemUI ve Launcher hareket hattı üzerinden çalışır.</string>
+    <string name="about_capabilities_desc">Geri, Ana Ekran, Son Uygulamalar ve kararlı uygulama geçişi HyperOS sistem hareket hattı üzerinden çalışır.</string>
     <string name="about_safe_title">Güvenli tasarım</string>
     <string name="about_safe_desc">Önceki gezinme ayarı korunur ve hareket aktivasyonu kapatıldığında geri yüklenir.</string>
     <string name="about_diagnostics_title">Canlı Tanılama</string>

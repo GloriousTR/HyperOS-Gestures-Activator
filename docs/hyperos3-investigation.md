@@ -111,7 +111,7 @@ metot adları varsa sadece giriş/çıkışları izlenir:
 
 Metot bulunmaması modülü durdurmaz; bu da cihaz uyumluluk bulgusudur.
 
-## v0.2.0 işlev testi
+## v1.0.0 işlev testi
 
 Varsayılan HOME üçüncü taraf launcher iken aşağıdakilerin tamamı doğrulanmalıdır:
 
@@ -121,12 +121,23 @@ Varsayılan HOME üçüncü taraf launcher iken aşağıdakilerin tamamı doğru
 | Kısa alt kaydırma | Üçüncü taraf HOME açılır |
 | Alt kaydır ve beklet | Xiaomi `RecentsActivity` açılır |
 | Sol/sağ kenardan içeri kaydırma | Geri işlemi çalışır |
-| Alt kenarda yatay kaydırma | v0.2.0'da garanti edilmez; üçüncü taraf HOME'da Xiaomi `mLauncher`/`RecentsView` köprüsü gerekir |
+| Alt kenarda yatay kaydırma | Android son görev listesindeki önceki uygun uygulamaya geçilir; ters yönde kaydırma son iki uygulama arasında geri döner |
 | **Güvenli kapat** | Önceki navbar modu döner, gesture pencereleri kaldırılır |
 | Yeniden başlatma | Aynı HOME korunur ve aktivasyon kendiliğinden geri gelir |
 
 WindowManager'da aktif durumda `GestureStubHome`, `GestureStubLeft` ve
 `GestureStubRight` pencerelerinin üçü de bulunmalıdır.
+
+v1.0.0'da alt hareket, `NavStubView.onTouchEvent` girişinde yön belli olana kadar
+tamponlanır. Dikey hareketler özgün Xiaomi Home/Recents hattına aynen devredilir.
+Yatay hareketlerde ise üçüncü taraf HOME ile güvenilir biçimde tamamlanmayan Xiaomi
+RecentsAnimation başlatılmaz; hedef launcher sürecinin erişebildiği Android görev
+listesinden çözülür. HOME, Xiaomi Launcher ve çalışmakta olan görev elenir; seçilen
+önceki uygulama `moveTaskToFront` ile sistem görev animasyonu kullanılarak öne alınır.
+Hedef çözümü ve sonuç Live Diagnostics'e `quick-switch` kategorisiyle kaydedilir.
+650 ms içindeki tekrarlar, `recents_animation_input_consumer` yarışını ve sistem ANR'ını
+önlemek için yok sayılır. Xiaomi ana ekranına özgü simgeye kapanma animasyonu üçüncü
+taraf launcher tarafından sağlanamaz.
 
 ## v0.1.0 test matrisi
 

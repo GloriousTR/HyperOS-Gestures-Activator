@@ -218,6 +218,8 @@ public final class MainActivity extends Activity {
                 getString(R.string.gesture_home_desc), true);
         addGestureRow(card, "▤", getString(R.string.gesture_recents_title),
                 getString(R.string.gesture_recents_desc), true);
+        addGestureRow(card, "↔", getString(R.string.gesture_quick_switch_title),
+                getString(R.string.gesture_quick_switch_desc), true);
         return card;
     }
 

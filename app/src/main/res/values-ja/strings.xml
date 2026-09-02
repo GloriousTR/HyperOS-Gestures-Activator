@@ -5,4 +5,5 @@
     <string name="gesture_back_title">戻る</string><string name="gesture_back_desc">左右の端から内側へスワイプ</string><string name="gesture_home_title">ホーム</string><string name="gesture_home_desc">下端からすばやく上へスワイプ</string><string name="gesture_recents_title">最近のアプリ</string><string name="gesture_recents_desc">上へスワイプして少し長押し</string>
     <string name="diagnostics_subtitle">システムイベントと操作履歴</string><string name="filter_all">すべて</string><string name="filter_success">成功</string><string name="filter_failure">失敗</string><string name="filter_info">情報</string><string name="action_snapshot">スナップショット</string><string name="action_export">レポートを書き出す</string><string name="action_clear">記録を消去</string>
     <string name="about_title">このアプリについて</string><string name="about_version">バージョン %1$s</string><string name="about_description">サードパーティ製ランチャーでも、透明な診断と安全な復元機能を備えたHyperOS純正ジェスチャー体験を復元します。</string><string name="about_open_github">GitHubを開く</string>
+    <string name="gesture_quick_switch_title">アプリを切り替える</string><string name="gesture_quick_switch_desc">下端に沿って左右にスワイプ</string>
 </resources>

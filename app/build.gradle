@@ -2,6 +2,12 @@ plugins {
     id "com.android.application"
 }
 
+def releaseKeystoreProperties = new Properties()
+def releaseKeystoreFile = rootProject.file("keystore.properties")
+if (releaseKeystoreFile.exists()) {
+    releaseKeystoreFile.withInputStream { releaseKeystoreProperties.load(it) }
+}
+
 def gitCommitCount = providers.exec {
     workingDir rootProject.projectDir
     commandLine "git", "rev-list", "--count", "HEAD"
@@ -24,7 +30,18 @@ android {
         minSdk 35
         targetSdk 36
         versionCode gitCommitCount.get()
-        versionName "0.2.0"
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        if (releaseKeystoreFile.exists()) {
+            release {
+                storeFile rootProject.file(releaseKeystoreProperties["storeFile"])
+                storePassword releaseKeystoreProperties["storePassword"]
+                keyAlias releaseKeystoreProperties["keyAlias"]
+                keyPassword releaseKeystoreProperties["keyPassword"]
+            }
+        }
     }
 
     buildTypes {
@@ -35,6 +52,9 @@ android {
         release {
             minifyEnabled true
             shrinkResources true
+            if (releaseKeystoreFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
         }

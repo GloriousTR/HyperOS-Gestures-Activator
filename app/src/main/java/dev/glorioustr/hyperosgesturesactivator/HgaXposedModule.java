@@ -1,5 +1,7 @@
 package dev.glorioustr.hyperosgesturesactivator;
 
+import android.app.ActivityManager;
+import android.app.ActivityOptions;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -13,9 +15,12 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
+import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -26,6 +31,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
@@ -34,7 +41,7 @@ import io.github.libxposed.api.XposedModuleInterface;
 /** HyperOS gesture activation guards with persistent live diagnostics. */
 public final class HgaXposedModule extends XposedModule {
     private static final String TAG = "HGA/Diagnostics";
-    private static final String BUILD_MARK = "v0.2.0-gesture-activation";
+    private static final String BUILD_MARK = "v1.0.0-quick-switch";
     private static final String SYSTEM_UI = "com.android.systemui";
     private static final String MIUI_LAUNCHER = "com.mi.android.globallauncher";
     private static final String NAVIGATION_MODE_CONTROLLER =
@@ -83,7 +90,12 @@ public final class HgaXposedModule extends XposedModule {
 
     private final List<XposedInterface.HookHandle> hookHandles = new ArrayList<>();
     private final List<PendingEvent> pendingEvents = new ArrayList<>();
+    private final Map<Object, BottomGesture> bottomGestures = new WeakHashMap<>();
+    private final ThreadLocal<Boolean> replayingBottomTouch =
+            ThreadLocal.withInitial(() -> false);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private long lastQuickSwitchUptime;
 
     private String processName = "unknown";
     private Context systemUiContext;
@@ -311,6 +323,8 @@ public final class HgaXposedModule extends XposedModule {
                     "performAppToRecents", boolean.class);
             Method performAppToHome = navStubClass.getDeclaredMethod(
                     "performAppToHome");
+            Method onTouchEvent = navStubClass.getDeclaredMethod(
+                    "onTouchEvent", MotionEvent.class);
             Method finishDirectly = navStubClass.getDeclaredMethod(
                     "finishDirectly", boolean.class);
             Method finishRecentsActivityDirectly = navStubClass.getDeclaredMethod(
@@ -327,6 +341,7 @@ public final class HgaXposedModule extends XposedModule {
                     "onOverviewToggle");
             performAppToRecents.setAccessible(true);
             performAppToHome.setAccessible(true);
+            onTouchEvent.setAccessible(true);
             finishDirectly.setAccessible(true);
             finishRecentsActivityDirectly.setAccessible(true);
             getObserver.setAccessible(true);
@@ -421,6 +436,29 @@ public final class HgaXposedModule extends XposedModule {
                     "hook-install",
                     "launcher-third-party-home-route",
                     performAppToHome.toGenericString());
+
+            record(hook(onTouchEvent)
+                    .setId("hga_classify_third_party_bottom_gesture")
+                    .intercept(chain -> {
+                        if (Boolean.TRUE.equals(replayingBottomTouch.get())) {
+                            return chain.proceed();
+                        }
+                        Object navStub = chain.getThisObject();
+                        MotionEvent event = (MotionEvent) chain.getArg(0);
+                        Context context = directContext(navStub, "mContext");
+                        if (event == null
+                                || context == null
+                                || !GestureActivation.isEnabled(context)
+                                || readField(navStub, "mLauncher") != null) {
+                            return chain.proceed();
+                        }
+                        return handleThirdPartyBottomGesture(
+                                chain, onTouchEvent, navStub, context, event);
+                    }));
+            recordSuccess(
+                    "hook-install",
+                    "launcher-bottom-gesture-classifier",
+                    onTouchEvent.toGenericString());
         } catch (Throwable throwable) {
             recordFailure(
                     "hook-install",
@@ -428,6 +466,204 @@ public final class HgaXposedModule extends XposedModule {
                     LAUNCHER_NAV_STUB + " Overview route unavailable",
                     throwable);
         }
+    }
+
+    private Object handleThirdPartyBottomGesture(
+            XposedInterface.Chain chain,
+            Method onTouchEvent,
+            Object navStub,
+            Context context,
+            MotionEvent event) throws Throwable {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            boolean coolingDown = SystemClock.uptimeMillis() - lastQuickSwitchUptime < 650L;
+            synchronized (bottomGestures) {
+                BottomGesture previous = bottomGestures.put(
+                        navStub, new BottomGesture(event, coolingDown));
+                if (previous != null) {
+                    previous.recycle();
+                }
+            }
+            return true;
+        }
+
+        BottomGesture gesture;
+        synchronized (bottomGestures) {
+            gesture = bottomGestures.get(navStub);
+        }
+        if (gesture == null) {
+            return chain.proceed();
+        }
+
+        if (gesture.mode == BottomGesture.MODE_VERTICAL) {
+            try {
+                return chain.proceed();
+            } finally {
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    removeBottomGesture(navStub, gesture);
+                }
+            }
+        }
+
+        float deltaX = event.getX() - gesture.startX;
+        float deltaY = event.getY() - gesture.startY;
+        float classificationThreshold = 12f
+                * context.getResources().getDisplayMetrics().density;
+        if (gesture.mode == BottomGesture.MODE_UNDECIDED
+                && (Math.abs(deltaX) >= classificationThreshold
+                || Math.abs(deltaY) >= classificationThreshold)) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2f) {
+                gesture.mode = BottomGesture.MODE_HORIZONTAL;
+                recordInfo(
+                        "quick-switch",
+                        gesture.coolingDown ? "ignore-rapid-gesture" : "gesture-start",
+                        "x=" + Math.round(gesture.startX)
+                                + ", y=" + Math.round(gesture.startY));
+            } else {
+                gesture.mode = BottomGesture.MODE_VERTICAL;
+                replayBottomTouchDown(onTouchEvent, navStub, gesture.downEvent);
+                return chain.proceed();
+            }
+        }
+
+        if (action == MotionEvent.ACTION_CANCEL) {
+            removeBottomGesture(navStub, gesture);
+            return true;
+        }
+        if (action != MotionEvent.ACTION_UP) {
+            return true;
+        }
+        removeBottomGesture(navStub, gesture);
+        if (gesture.mode != BottomGesture.MODE_HORIZONTAL || gesture.coolingDown) {
+            return true;
+        }
+
+        completeStableQuickSwitch(navStub, context, gesture, event, deltaX, deltaY);
+        return true;
+    }
+
+    private void replayBottomTouchDown(Method onTouchEvent, Object navStub, MotionEvent down)
+            throws Exception {
+        replayingBottomTouch.set(true);
+        try {
+            onTouchEvent.invoke(navStub, down);
+        } finally {
+            replayingBottomTouch.set(false);
+        }
+    }
+
+    private void removeBottomGesture(Object navStub, BottomGesture expected) {
+        synchronized (bottomGestures) {
+            if (bottomGestures.get(navStub) == expected) {
+                bottomGestures.remove(navStub);
+            }
+        }
+        expected.recycle();
+    }
+
+    private void completeStableQuickSwitch(
+            Object navStub,
+            Context context,
+            BottomGesture gesture,
+            MotionEvent event,
+            float deltaX,
+            float deltaY) {
+        float threshold = 72f * context.getResources().getDisplayMetrics().density;
+        if (Math.abs(deltaX) < threshold || Math.abs(deltaX) < Math.abs(deltaY) * 1.4f) {
+            recordInfo(
+                    "quick-switch",
+                    "gesture-rejected",
+                    "dx=" + Math.round(deltaX) + ", dy=" + Math.round(deltaY));
+            return;
+        }
+
+        attachEventContext(context);
+        ActivityManager.RunningTaskInfo target = findPreviousAppTask(context);
+        if (target == null) {
+            recordFailure(
+                    "quick-switch",
+                    "resolve-app-to-app-target",
+                    "No eligible previous application task was found",
+                    null);
+            return;
+        }
+        try {
+            ActivityManager activityManager = context.getSystemService(ActivityManager.class);
+            if (activityManager == null) {
+                throw new IllegalStateException("ActivityManager service unavailable");
+            }
+            ActivityOptions options = navStub instanceof View
+                    ? ActivityOptions.makeScaleUpAnimation(
+                            (View) navStub,
+                            deltaX < 0 ? ((View) navStub).getWidth() : 0,
+                            ((View) navStub).getHeight() / 2,
+                            1,
+                            1)
+                    : ActivityOptions.makeBasic();
+            activityManager.moveTaskToFront(
+                    target.taskId,
+                    ActivityManager.MOVE_TASK_WITH_HOME,
+                    options.toBundle());
+            lastQuickSwitchUptime = SystemClock.uptimeMillis();
+            recordSuccess(
+                    "quick-switch",
+                    "complete-app-to-app",
+                    "Stable system transition moved taskId=" + target.taskId
+                            + ", component=" + target.topActivity
+                            + ", direction=" + (deltaX < 0 ? "left" : "right")
+                            + ", durationMs=" + (event.getEventTime() - gesture.downTime));
+        } catch (Throwable throwable) {
+            recordFailure(
+                    "quick-switch",
+                    "complete-app-to-app",
+                    "Stable system transition failed for taskId=" + target.taskId,
+                    throwable);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private ActivityManager.RunningTaskInfo findPreviousAppTask(Context context) {
+        try {
+            ActivityManager activityManager = context.getSystemService(ActivityManager.class);
+            if (activityManager == null) {
+                return null;
+            }
+            List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(24);
+            if (tasks == null || tasks.isEmpty()) {
+                return null;
+            }
+            String homePackage = null;
+            Intent homeIntent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+            ResolveInfo home = context.getPackageManager().resolveActivity(
+                    homeIntent, PackageManager.MATCH_DEFAULT_ONLY);
+            if (home != null && home.activityInfo != null) {
+                homePackage = home.activityInfo.packageName;
+            }
+            boolean currentAppFound = false;
+            for (ActivityManager.RunningTaskInfo task : tasks) {
+                if (task == null || task.topActivity == null) {
+                    continue;
+                }
+                String packageName = task.topActivity.getPackageName();
+                if (MIUI_LAUNCHER.equals(packageName)
+                        || packageName.equals(context.getPackageName())
+                        || packageName.equals(homePackage)) {
+                    continue;
+                }
+                if (!currentAppFound) {
+                    currentAppFound = true;
+                    continue;
+                }
+                return task;
+            }
+        } catch (Throwable throwable) {
+            recordFailure(
+                    "quick-switch",
+                    "resolve-app-to-app-target",
+                    "Unable to query running application tasks",
+                    throwable);
+        }
+        return null;
     }
 
     private void installNavigationModeControllerHooks(ClassLoader classLoader) {
@@ -864,6 +1100,31 @@ public final class HgaXposedModule extends XposedModule {
             }
         }
         return false;
+    }
+
+    private static final class BottomGesture {
+        static final int MODE_UNDECIDED = 0;
+        static final int MODE_HORIZONTAL = 1;
+        static final int MODE_VERTICAL = 2;
+
+        final MotionEvent downEvent;
+        final float startX;
+        final float startY;
+        final long downTime;
+        final boolean coolingDown;
+        int mode = MODE_UNDECIDED;
+
+        BottomGesture(MotionEvent event, boolean coolingDown) {
+            downEvent = MotionEvent.obtain(event);
+            startX = event.getX();
+            startY = event.getY();
+            downTime = event.getEventTime();
+            this.coolingDown = coolingDown;
+        }
+
+        void recycle() {
+            downEvent.recycle();
+        }
     }
 
     private static Method findMethod(Class<?> type, String methodName, int parameterCount) {

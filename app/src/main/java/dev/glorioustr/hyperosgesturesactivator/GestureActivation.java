@@ -10,7 +10,7 @@ final class GestureActivation {
     static final String KEY_FORCE_FSG_NAV_BAR = "force_fsg_nav_bar";
     static final String KEY_NAVIGATION_MODE = "navigation_mode";
 
-    private static final String READY_VERSION = "v0.2.0";
+    private static final String READY_VERSION = "v1.0.0";
 
     private GestureActivation() {
     }

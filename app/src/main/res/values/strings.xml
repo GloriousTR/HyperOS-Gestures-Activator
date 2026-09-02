@@ -48,6 +48,8 @@
     <string name="gesture_home_desc">Swipe up quickly from the bottom edge</string>
     <string name="gesture_recents_title">Recent apps</string>
     <string name="gesture_recents_desc">Swipe up and hold briefly</string>
+    <string name="gesture_quick_switch_title">Switch apps</string>
+    <string name="gesture_quick_switch_desc">Swipe left or right along the bottom edge</string>
     <string name="diagnostics_open_cd">Open Live Diagnostics</string>
     <string name="diagnostics_loading">Loading event summary…</string>
     <string name="diagnostics_summary">%1$d events  •  %2$d successful  •  %3$d errors</string>
@@ -91,7 +93,7 @@
     <string name="about_version">Version %1$s</string>
     <string name="about_description">Restores the native HyperOS gesture experience when using a third-party launcher, with transparent system diagnostics and a safe recovery path.</string>
     <string name="about_capabilities_title">Built for native gestures</string>
-    <string name="about_capabilities_desc">Back, Home and Recent Apps run through the HyperOS SystemUI and Launcher gesture pipeline.</string>
+    <string name="about_capabilities_desc">Back, Home, Recent Apps and stable app switching work through the HyperOS system gesture pipeline.</string>
     <string name="about_safe_title">Safe by design</string>
     <string name="about_safe_desc">The previous navigation setting is preserved and restored when gesture activation is disabled.</string>
     <string name="about_diagnostics_title">Live Diagnostics</string>

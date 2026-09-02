@@ -5,4 +5,5 @@
     <string name="gesture_back_title">返回</string><string name="gesture_back_desc">從左側或右側邊緣向內滑動</string><string name="gesture_home_title">主畫面</string><string name="gesture_home_desc">從底部邊緣快速向上滑動</string><string name="gesture_recents_title">最近使用的應用程式</string><string name="gesture_recents_desc">向上滑動並短暫停留</string>
     <string name="diagnostics_subtitle">系統事件與操作歷史</string><string name="filter_all">全部</string><string name="filter_success">成功</string><string name="filter_failure">失敗</string><string name="filter_info">資訊</string><string name="action_snapshot">快照</string><string name="action_export">匯出報告</string><string name="action_clear">清除記錄</string>
     <string name="about_title">關於</string><string name="about_version">版本 %1$s</string><string name="about_description">使用第三方啟動器時恢復 HyperOS 原生手勢體驗，並提供透明診斷與安全復原。</string><string name="about_open_github">開啟 GitHub</string>
+    <string name="gesture_quick_switch_title">切換應用程式</string><string name="gesture_quick_switch_desc">沿底部邊緣向左或向右滑動</string>
 </resources>
