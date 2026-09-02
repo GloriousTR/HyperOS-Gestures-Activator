@@ -47,11 +47,14 @@ Uygulamadaki **Live Diagnostics** ekranı SystemUI olaylarını 750 ms aralıkla
 - durum türüne göre filtreleme yapar;
 - hata stack trace'lerini ve olayın process/thread kaynağını saklar;
 - olayları device-protected SQLite veritabanında kalıcı tutar;
+- tüm cihaz/aktivasyon özetini ve sınırsız olay geçmişini zaman damgalı UTF-8 metin
+  raporu olarak kullanıcının seçtiği konuma dışa aktarır;
 - SystemUI ve Xiaomi Launcher'ın gerçek UID'leri dışındaki diagnostics
   göndericilerini reddeder.
 
-Ekran son 1000 olayı gösterir; veritabanı kullanıcı açıkça temizleyene kadar tüm
-olayları saklamaya devam eder.
+Ekran performans için son 1000 olayı gösterir; dışa aktarılan rapor veritabanındaki
+tüm olayları içerir. Veritabanı kullanıcı açıkça temizleyene kadar kayıtları
+saklamaya devam eder.
 
 Kullanıcının ayrıca kurulu MiuiBackGestureHook 0.4.0 modülüne, ayarlarına veya
 kapsamına dokunulmaz.

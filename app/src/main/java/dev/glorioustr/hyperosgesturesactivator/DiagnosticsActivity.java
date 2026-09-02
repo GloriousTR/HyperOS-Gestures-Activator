@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,7 +25,12 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,6 +39,7 @@ import java.util.Locale;
 
 public final class DiagnosticsActivity extends Activity {
     private static final long LIVE_REFRESH_INTERVAL_MS = 750L;
+    private static final int REQUEST_EXPORT_REPORT = 4101;
 
     private final Handler liveHandler = new Handler(Looper.getMainLooper());
     private final EventAdapter eventAdapter = new EventAdapter();
@@ -166,8 +173,13 @@ public final class DiagnosticsActivity extends Activity {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         addWeightedButton(actions,
                 actionButton("Anlık kayıt", view -> captureAppSnapshot("manual-refresh")));
-        addWeightedButton(actions, actionButton("Kayıtları temizle", view -> confirmClear()));
+        addWeightedButton(actions,
+                actionButton("Raporu dışa aktar", view -> chooseReportDestination()));
         controls.addView(actions, matchWrap());
+
+        Button clearButton = actionButton("Kayıtları temizle", view -> confirmClear());
+        clearButton.setTextColor(Color.rgb(160, 48, 48));
+        controls.addView(clearButton, matchWrap());
         root.addView(controls, matchWrap());
 
         eventList = new ListView(this);
@@ -187,6 +199,18 @@ public final class DiagnosticsActivity extends Activity {
         footer.setTextSize(11);
         root.addView(footer, matchWrap());
         return root;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_EXPORT_REPORT
+                || resultCode != RESULT_OK
+                || data == null
+                || data.getData() == null) {
+            return;
+        }
+        exportReport(data.getData());
     }
 
     private Button filterButton(String label, String filter) {
@@ -283,6 +307,114 @@ public final class DiagnosticsActivity extends Activity {
                     throwable.getClass().getName() + ": " + throwable.getMessage());
         }
         reloadEvents();
+    }
+
+    private void chooseReportDestination() {
+        SimpleDateFormat filenameFormat =
+                new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US);
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("text/plain")
+                .putExtra(
+                        Intent.EXTRA_TITLE,
+                        "hga-diagnostics-"
+                                + filenameFormat.format(new Date())
+                                + ".txt");
+        try {
+            startActivityForResult(intent, REQUEST_EXPORT_REPORT);
+        } catch (Throwable throwable) {
+            recordAppEvent(
+                    DiagnosticEvent.STATUS_FAILURE,
+                    "export",
+                    "choose-diagnostics-report-destination",
+                    throwable.getClass().getName() + ": " + throwable.getMessage());
+            Toast.makeText(this,
+                    "Rapor kaydetme ekranı açılamadı",
+                    Toast.LENGTH_LONG).show();
+            renderedTotal = -1L;
+            reloadEvents();
+        }
+    }
+
+    private void exportReport(Uri destination) {
+        liveStateView.setText("● RAPOR HAZIRLANIYOR");
+        liveStateView.setTextColor(Color.rgb(71, 83, 160));
+        new Thread(() -> {
+            try (OutputStream output = getContentResolver().openOutputStream(
+                    destination, "wt")) {
+                if (output == null) {
+                    throw new IllegalStateException("Document provider returned no output stream");
+                }
+                List<DiagnosticEvent> events = database.all();
+                DiagnosticDatabase.Counts counts = database.counts();
+                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                        output, StandardCharsets.UTF_8))) {
+                    writeReport(writer, counts, events);
+                }
+                recordAppEvent(
+                        DiagnosticEvent.STATUS_SUCCESS,
+                        "export",
+                        "write-diagnostics-report",
+                        "uri=" + destination + " | exportedEvents=" + events.size());
+                runOnUiThread(() -> {
+                    renderedTotal = -1L;
+                    reloadEvents();
+                    liveStateView.setText("● CANLI — rapor dışa aktarıldı");
+                    liveStateView.setTextColor(Color.rgb(20, 125, 70));
+                    Toast.makeText(this,
+                            "Tanılama raporu kaydedildi",
+                            Toast.LENGTH_LONG).show();
+                });
+            } catch (Throwable throwable) {
+                recordAppEvent(
+                        DiagnosticEvent.STATUS_FAILURE,
+                        "export",
+                        "write-diagnostics-report",
+                        throwable.getClass().getName() + ": " + throwable.getMessage());
+                runOnUiThread(() -> {
+                    renderedTotal = -1L;
+                    reloadEvents();
+                    liveStateView.setText("● HATA — rapor kaydedilemedi");
+                    liveStateView.setTextColor(Color.rgb(186, 26, 26));
+                    Toast.makeText(this,
+                            "Tanılama raporu kaydedilemedi",
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        }, "diagnostics-export").start();
+    }
+
+    private void writeReport(
+            BufferedWriter writer,
+            DiagnosticDatabase.Counts counts,
+            List<DiagnosticEvent> events) throws Exception {
+        SimpleDateFormat reportTime =
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", Locale.US);
+        writer.write("HyperOS Gestures Activator — Tanılama Raporu\n");
+        writer.write("Oluşturulma: " + reportTime.format(new Date()) + "\n");
+        writer.write(buildDeviceSummary() + "\n");
+        writer.write("defaultHome=" + resolveDefaultHome() + "\n");
+        writer.write("activation=" + GestureActivation.isEnabled(this) + "\n");
+        writer.write("hooks={systemUi=" + GestureActivation.isSystemUiReady(this)
+                + ",launcher=" + GestureActivation.isLauncherReady(this) + "}\n");
+        writer.write("global/force_fsg_nav_bar="
+                + GestureActivation.readGlobalInt(
+                        this, GestureActivation.KEY_FORCE_FSG_NAV_BAR, -1) + "\n");
+        writer.write("secure/navigation_mode=" + readSecure("navigation_mode") + "\n");
+        writer.write("counts={total=" + counts.total
+                + ",success=" + counts.success
+                + ",failure=" + counts.failure
+                + ",info=" + counts.info + "}\n");
+        writer.write("\n=== OLAYLAR (EN YENİDEN ESKİYE) ===\n");
+        for (DiagnosticEvent event : events) {
+            writer.write("\n[#" + event.id + "] "
+                    + reportTime.format(new Date(event.timestamp))
+                    + "  " + event.status
+                    + "  " + event.category + '/' + event.operation + "\n");
+            writer.write("Kaynak: " + event.processName
+                    + " · " + event.threadName + "\n");
+            writer.write(event.detail.isEmpty() ? "—\n" : event.detail + "\n");
+        }
     }
 
     private void confirmClear() {

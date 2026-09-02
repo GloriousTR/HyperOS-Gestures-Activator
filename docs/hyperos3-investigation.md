@@ -121,6 +121,7 @@ Varsayılan HOME üçüncü taraf launcher iken aşağıdakilerin tamamı doğru
 | Kısa alt kaydırma | Üçüncü taraf HOME açılır |
 | Alt kaydır ve beklet | Xiaomi `RecentsActivity` açılır |
 | Sol/sağ kenardan içeri kaydırma | Geri işlemi çalışır |
+| Alt kenarda yatay kaydırma | v0.2.0'da garanti edilmez; üçüncü taraf HOME'da Xiaomi `mLauncher`/`RecentsView` köprüsü gerekir |
 | **Güvenli kapat** | Önceki navbar modu döner, gesture pencereleri kaldırılır |
 | Yeniden başlatma | Aynı HOME korunur ve aktivasyon kendiliğinden geri gelir |
 

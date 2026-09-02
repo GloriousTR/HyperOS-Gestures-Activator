@@ -62,6 +62,14 @@ final class DiagnosticDatabase extends SQLiteOpenHelper {
     }
 
     List<DiagnosticEvent> latest(String statusFilter) {
+        return queryEvents(statusFilter, String.valueOf(SCREEN_EVENT_LIMIT));
+    }
+
+    List<DiagnosticEvent> all() {
+        return queryEvents(null, null);
+    }
+
+    private List<DiagnosticEvent> queryEvents(String statusFilter, String limit) {
         String selection = null;
         String[] selectionArgs = null;
         if (statusFilter != null) {
@@ -78,7 +86,7 @@ final class DiagnosticDatabase extends SQLiteOpenHelper {
                 null,
                 null,
                 "_id DESC",
-                String.valueOf(SCREEN_EVENT_LIMIT))) {
+                limit)) {
             while (cursor.moveToNext()) {
                 events.add(new DiagnosticEvent(
                         cursor.getLong(0),
