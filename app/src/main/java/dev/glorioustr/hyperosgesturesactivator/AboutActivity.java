@@ -92,7 +92,7 @@ public final class AboutActivity extends Activity {
         LinearLayout card = card();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(20), dp(22), dp(20), dp(24));
-        card.setBackground(rounded(Color.rgb(5, 8, 17), 26,
+        card.setBackground(rounded(Color.rgb(2, 3, 17), 26,
                 Color.rgb(30, 68, 150), 1));
 
         ImageView logo = new ImageView(this);
